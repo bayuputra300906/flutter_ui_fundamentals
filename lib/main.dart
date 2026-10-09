@@ -1,44 +1,56 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter/services.dart';
 
-// Membaca data dari JSON
+import 'pages/home_page.dart';
+import 'pages/profile_page.dart';
+import 'pages/navigation_page.dart';
+
+
+// ============================================================
+// LOAD STUDENT DATA
+// ============================================================
+
 Future<Map<String, dynamic>> loadStudentData() async {
   final jsonString = await rootBundle.loadString(
     'assets/data/student_data.json',
   );
 
-  return jsonDecode(jsonString) as Map<String, dynamic>;
+  return jsonDecode(jsonString);
 }
 
-// Reusable widget untuk summary card
-Widget buildSummaryCard(
-  String value,
-  String label,
-  IconData icon,
-) {
+
+// ============================================================
+// SUMMARY CARD
+// ============================================================
+
+Widget buildSummaryCard({
+  required IconData icon,
+  required String value,
+  required String label,
+}) {
   return Expanded(
     child: Card(
       elevation: 3,
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            Icon(icon, size: 28),
+            Icon(
+              icon,
+              size: 30,
+            ),
             const SizedBox(height: 8),
             Text(
               value,
               style: const TextStyle(
-                fontSize: 20,
+                fontSize: 22,
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 4),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-            ),
+            Text(label),
           ],
         ),
       ),
@@ -46,8 +58,12 @@ Widget buildSummaryCard(
   );
 }
 
-// Reusable widget untuk status course
-Widget buildStatusIcon(String status) {
+
+// ============================================================
+// STATUS ICON
+// ============================================================
+
+Icon buildStatusIcon(String status) {
   if (status == 'done') {
     return const Icon(
       Icons.check_circle,
@@ -68,50 +84,213 @@ Widget buildStatusIcon(String status) {
   );
 }
 
-// Reusable widget untuk item course
-Widget buildCourseCard(
-  Map<String, dynamic> course,
-) {
-  final String status = course['status'] as String;
 
-  String statusText;
+// ============================================================
+// COURSE CARD
+// ============================================================
 
-  if (status == 'done') {
-    statusText = 'Selesai';
-  } else if (status == 'active') {
-    statusText = 'Aktif';
-  } else {
-    statusText = 'Rencana';
-  }
+Widget buildCourseCard(Map<String, dynamic> course) {
+  final String status = course['status'];
 
   return Card(
-    elevation: 2,
-    margin: const EdgeInsets.only(bottom: 10),
+    margin: const EdgeInsets.only(bottom: 12),
     child: ListTile(
       leading: buildStatusIcon(status),
-
       title: Text(
-        course['title'] as String,
+        course['title'],
         style: const TextStyle(
           fontWeight: FontWeight.bold,
         ),
       ),
-
       subtitle: Text(
         '${course['code']} • ${course['credits']} SKS',
       ),
-
       trailing: Text(
-        statusText,
-        style: const TextStyle(
-          fontWeight: FontWeight.bold,
-        ),
+        status,
       ),
     ),
   );
 }
 
-// Dashboard utama
+
+// ============================================================
+// COMPACT LAYOUT
+// ============================================================
+
+class CompactLayout extends StatelessWidget {
+  final Map<String, dynamic> student;
+
+  const CompactLayout({
+    super.key,
+    required this.student,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Text(
+          'Learning Dashboard',
+          style: Theme.of(context)
+              .textTheme
+              .headlineSmall
+              ?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+
+        const SizedBox(height: 8),
+
+        Text(
+          'Nama: ${student['name']}',
+        ),
+
+        Text(
+          'NIM: ${student['nim']}',
+        ),
+
+        const SizedBox(height: 20),
+
+        Row(
+          children: [
+            buildSummaryCard(
+              icon: Icons.menu_book,
+              value: '${student['courses'].length}',
+              label: 'Materi',
+            ),
+
+            const SizedBox(width: 12),
+
+            buildSummaryCard(
+              icon: Icons.school,
+              value: '${student['semester']}',
+              label: 'Semester',
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 20),
+
+        ...student['courses']
+            .map<Widget>(
+              (course) => buildCourseCard(course),
+            )
+            .toList(),
+      ],
+    );
+  }
+}
+
+
+// ============================================================
+// MEDIUM LAYOUT
+// ============================================================
+
+class MediumLayout extends StatelessWidget {
+  final Map<String, dynamic> student;
+
+  const MediumLayout({
+    super.key,
+    required this.student,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(24),
+      children: [
+        Text(
+          'Learning Dashboard',
+          style: Theme.of(context)
+              .textTheme
+              .headlineMedium
+              ?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+
+        const SizedBox(height: 8),
+
+        Text(
+          'Nama: ${student['name']}',
+        ),
+
+        Text(
+          'NIM: ${student['nim']}',
+        ),
+
+        const SizedBox(height: 20),
+
+        Row(
+          children: [
+            buildSummaryCard(
+              icon: Icons.menu_book,
+              value: '${student['courses'].length}',
+              label: 'Materi',
+            ),
+
+            const SizedBox(width: 16),
+
+            buildSummaryCard(
+              icon: Icons.school,
+              value: '${student['semester']}',
+              label: 'Semester',
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 24),
+
+        ...student['courses']
+            .map<Widget>(
+              (course) => buildCourseCard(course),
+            )
+            .toList(),
+      ],
+    );
+  }
+}
+
+
+// ============================================================
+// EXPANDED LAYOUT
+// ============================================================
+
+class ExpandedLayout extends StatelessWidget {
+  final Map<String, dynamic> student;
+
+  const ExpandedLayout({
+    super.key,
+    required this.student,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.builder(
+      padding: const EdgeInsets.all(24),
+      gridDelegate:
+          const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+        childAspectRatio: 1.5,
+      ),
+      itemCount: student['courses'].length,
+      itemBuilder: (context, index) {
+        return buildCourseCard(
+          student['courses'][index],
+        );
+      },
+    );
+  }
+}
+
+
+// ============================================================
+// DASHBOARD PAGE
+// ============================================================
+
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
 
@@ -120,14 +299,15 @@ class DashboardPage extends StatefulWidget {
       _DashboardPageState();
 }
 
-class _DashboardPageState extends State<DashboardPage> {
+class _DashboardPageState
+    extends State<DashboardPage> {
+
   late Future<Map<String, dynamic>> studentFuture;
 
   @override
   void initState() {
     super.initState();
 
-    // Future dijalankan satu kali
     studentFuture = loadStudentData();
   }
 
@@ -135,15 +315,16 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Learning Dashboard'),
-        centerTitle: true,
+        title: const Text(
+          'Learning Dashboard',
+        ),
       ),
 
       body: FutureBuilder<Map<String, dynamic>>(
         future: studentFuture,
 
         builder: (context, snapshot) {
-          // Loading state
+
           if (snapshot.connectionState ==
               ConnectionState.waiting) {
             return const Center(
@@ -151,200 +332,43 @@ class _DashboardPageState extends State<DashboardPage> {
             );
           }
 
-          // Error state
           if (snapshot.hasError) {
             return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Text(
-                  'Gagal memuat data:\n${snapshot.error}',
-                  textAlign: TextAlign.center,
-                ),
+              child: Text(
+                'Terjadi kesalahan: ${snapshot.error}',
               ),
             );
           }
 
-          // Jika data kosong
           if (!snapshot.hasData) {
             return const Center(
-              child: Text('Data tidak tersedia'),
+              child: Text(
+                'Data tidak ditemukan.',
+              ),
             );
           }
 
-          // Mengambil data JSON
-          final data = snapshot.data!;
+          final student = snapshot.data!;
 
-          final student =
-              data['student'] as Map<String, dynamic>;
+          return LayoutBuilder(
+            builder: (context, constraints) {
 
-          final courses =
-              data['courses'] as List<dynamic>;
+              if (constraints.maxWidth < 600) {
+                return CompactLayout(
+                  student: student,
+                );
+              }
 
-          final String studentName =
-              student['name'] as String;
+              if (constraints.maxWidth < 1000) {
+                return MediumLayout(
+                  student: student,
+                );
+              }
 
-          final String studentId =
-              student['nim'] as String;
-
-          final int semester =
-              student['semester'] as int;
-
-          // Menghitung total SKS
-          int totalCredits = 0;
-
-          for (final item in courses) {
-            final course =
-                item as Map<String, dynamic>;
-
-            totalCredits +=
-                course['credits'] as int;
-          }
-
-          return SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
-                children: [
-                  // =========================
-                  // PROFILE CARD
-                  // =========================
-                  Card(
-                    elevation: 4,
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Row(
-                        children: [
-                          const CircleAvatar(
-                            radius: 42,
-                            backgroundImage: AssetImage(
-                              'assets/images/profile.jpg',
-                            ),
-                          ),
-
-                          const SizedBox(width: 16),
-
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  studentName,
-                                  style: const TextStyle(
-                                    fontSize: 19,
-                                    fontWeight:
-                                        FontWeight.bold,
-                                  ),
-                                ),
-
-                                const SizedBox(height: 4),
-
-                                Text(
-                                  studentId,
-                                  style: const TextStyle(
-                                    fontSize: 15,
-                                  ),
-                                ),
-
-                                const SizedBox(height: 4),
-
-                                Text(
-                                  'Semester $semester',
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // =========================
-                  // CASE A - RENDERFLEX OVERFLOW
-                  // =========================
-                  Row(
-                    children: [
-                      const Icon(Icons.info),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          '${student['nim']} - ${student['name']} - saya suka bermain game mobile legends dan efootball',
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // =========================
-                  // SUMMARY
-                  // =========================
-                  const Text(
-                    'Ringkasan Pembelajaran',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  Row(
-                    children: [
-                      buildSummaryCard(
-                        '${courses.length}',
-                        'Mata Kuliah',
-                        Icons.menu_book,
-                      ),
-
-                      const SizedBox(width: 8),
-
-                      buildSummaryCard(
-                        '$totalCredits',
-                        'Total SKS',
-                        Icons.school,
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // =========================
-                  // COURSE LIST
-                  // =========================
-                  const Text(
-                    'Daftar Mata Kuliah',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics:
-                        const NeverScrollableScrollPhysics(),
-                    itemCount: courses.length,
-                    itemBuilder: (context, index) {
-                      final course =
-                          courses[index]
-                              as Map<String, dynamic>;
-
-                      return buildCourseCard(course);
-                    },
-                  ),
-                ],
-              ),
-            ),
+              return ExpandedLayout(
+                student: student,
+              );
+            },
           );
         },
       ),
@@ -352,9 +376,10 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 }
 
-void main() {
-  runApp(const MyApp());
-}
+
+// ============================================================
+// MY APP
+// ============================================================
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -364,40 +389,27 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
 
+      title: 'Course Explorer',
+
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6750A4),
+          seedColor: Colors.blue,
         ),
-
-        scaffoldBackgroundColor:
-            const Color(0xFFF7F4FC),
-
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF6750A4),
-          foregroundColor: Colors.white,
-          elevation: 3,
-          centerTitle: true,
-        ),
-
-        cardTheme: const CardThemeData(
-          color: Colors.white,
-          elevation: 3,
-          margin: EdgeInsets.zero,
-        ),
-
-        inputDecorationTheme:
-            const InputDecorationTheme(
-          filled: true,
-          fillColor: Color(0xFFF3EFFA),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.all(
-              Radius.circular(12),
-            ),
-          ),
-        ),
+        useMaterial3: true,
       ),
 
-      home: const DashboardPage(),
+      home: const NavigationPage(),
     );
   }
+}
+
+
+// ============================================================
+// MAIN
+// ============================================================
+
+void main() {
+  runApp(
+    const MyApp(),
+  );
 }

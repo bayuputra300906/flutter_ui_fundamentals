@@ -1,6 +1,8 @@
+
 import 'package:flutter/material.dart';
 import 'home_page.dart';
 import 'profile_page.dart';
+import 'favorites_page.dart';
 
 class NavigationPage extends StatefulWidget {
   const NavigationPage({super.key});
@@ -12,11 +14,44 @@ class NavigationPage extends StatefulWidget {
 class _NavigationPageState extends State<NavigationPage> {
   int selectedIndex = 0;
 
-  final List<Widget> pages = const [
-    HomeTab(),
-    CoursesTab(),
-    ProfilePage(),
-  ];
+  // STATE FAVORIT BERSAMA
+  final Set<String> favorites = {};
+
+  void toggleFavorite(String course) {
+    setState(() {
+      if (favorites.contains(course)) {
+        favorites.remove(course);
+      } else {
+        favorites.add(course);
+      }
+    });
+  }
+
+  // MEMILIH HALAMAN
+  Widget buildSelectedPage() {
+    switch (selectedIndex) {
+      case 0:
+        return const HomeTab();
+
+      case 1:
+        return HomePage(
+          favorites: favorites,
+          onToggleFavorite: toggleFavorite,
+        );
+
+      case 2:
+        return const ProfilePage();
+
+      case 3:
+        return FavoritesPage(
+          favorites: favorites,
+          onToggleFavorite: toggleFavorite,
+        );
+
+      default:
+        return const HomeTab();
+    }
+  }
 
   // =========================
   // NAVIGATION BAR
@@ -44,6 +79,11 @@ class _NavigationPageState extends State<NavigationPage> {
           icon: Icon(Icons.person_outline),
           selectedIcon: Icon(Icons.person),
           label: 'Profile',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.favorite_border),
+          selectedIcon: Icon(Icons.favorite),
+          label: 'Favorites',
         ),
       ],
     );
@@ -77,10 +117,18 @@ class _NavigationPageState extends State<NavigationPage> {
           selectedIcon: Icon(Icons.person),
           label: Text('Profile'),
         ),
+        NavigationRailDestination(
+          icon: Icon(Icons.favorite_border),
+          selectedIcon: Icon(Icons.favorite),
+          label: Text('Favorites'),
+        ),
       ],
     );
   }
 
+  // =========================
+  // BUILD
+  // =========================
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -90,7 +138,7 @@ class _NavigationPageState extends State<NavigationPage> {
         // =========================
         if (constraints.maxWidth < 840) {
           return Scaffold(
-            body: pages[selectedIndex],
+            body: buildSelectedPage(),
             bottomNavigationBar: buildNavigationBar(),
           );
         }
@@ -102,11 +150,9 @@ class _NavigationPageState extends State<NavigationPage> {
           body: Row(
             children: [
               buildNavigationRail(),
-              const VerticalDivider(
-                width: 1,
-              ),
+              const VerticalDivider(width: 1),
               Expanded(
-                child: pages[selectedIndex],
+                child: buildSelectedPage(),
               ),
             ],
           ),
@@ -149,7 +195,6 @@ class HomeTab extends StatelessWidget {
                     size: 45,
                   ),
                   const SizedBox(height: 12),
-
                   const Text(
                     'Course Explorer',
                     style: TextStyle(
@@ -157,33 +202,25 @@ class HomeTab extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-
                   const SizedBox(height: 8),
-
                   const Text(
                     'Selamat datang di Course Explorer.',
                   ),
-
                   const SizedBox(height: 16),
-
                   const Text(
                     'Nama: Gede Bayu Putra Darmawan',
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-
                   const SizedBox(height: 4),
-
                   const Text(
                     'NIM: 2415051105',
                   ),
                 ],
               ),
             ),
-
             const SizedBox(height: 24),
-
             const Text(
               'Selamat Belajar!',
               style: TextStyle(
@@ -191,9 +228,7 @@ class HomeTab extends StatelessWidget {
                 fontWeight: FontWeight.bold,
               ),
             ),
-
             const SizedBox(height: 8),
-
             const Text(
               'Gunakan menu Courses untuk melihat daftar mata kuliah.',
             ),
@@ -201,18 +236,5 @@ class HomeTab extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-// ======================================================
-// COURSES TAB
-// ======================================================
-
-class CoursesTab extends StatelessWidget {
-  const CoursesTab({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const HomePage();
   }
 }

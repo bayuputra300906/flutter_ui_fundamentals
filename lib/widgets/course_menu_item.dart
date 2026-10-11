@@ -8,6 +8,8 @@ class CourseMenuItem extends StatefulWidget {
   final String credits;
   final String status;
   final VoidCallback onTap;
+  final bool isFavorite;
+  final VoidCallback onFavoriteTap;
 
   const CourseMenuItem({
     super.key,
@@ -18,6 +20,8 @@ class CourseMenuItem extends StatefulWidget {
     required this.credits,
     required this.status,
     required this.onTap,
+    required this.isFavorite,
+    required this.onFavoriteTap,
   });
 
   @override
@@ -25,9 +29,6 @@ class CourseMenuItem extends StatefulWidget {
 }
 
 class _CourseMenuItemState extends State<CourseMenuItem> {
-  // State untuk menentukan apakah mata kuliah favorite
-  bool isFavorite = false;
-
   // ==========================================================
   // LONG PRESS
   // ==========================================================
@@ -110,8 +111,7 @@ class _CourseMenuItemState extends State<CourseMenuItem> {
 
                 Expanded(
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         widget.title,
@@ -145,8 +145,7 @@ class _CourseMenuItemState extends State<CourseMenuItem> {
                               color: widget.iconColor.withValues(
                                 alpha: 0.10,
                               ),
-                              borderRadius:
-                                  BorderRadius.circular(20),
+                              borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
                               widget.credits,
@@ -183,34 +182,32 @@ class _CourseMenuItemState extends State<CourseMenuItem> {
                 // ==================================================
 
                 IconButton(
-                  tooltip: isFavorite
+                  tooltip: widget.isFavorite
                       ? 'Hapus dari favorite'
                       : 'Tambah ke favorite',
 
                   onPressed: () {
-                    setState(() {
-                      isFavorite = !isFavorite;
-                    });
+                    final wasFavorite = widget.isFavorite;
 
-                    ScaffoldMessenger.of(context)
-                        .showSnackBar(
+                    widget.onFavoriteTap();
+
+                    ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        duration:
-                            const Duration(seconds: 1),
+                        duration: const Duration(seconds: 1),
                         content: Text(
-                          isFavorite
-                              ? '${widget.title} ditambahkan ke favorite.'
-                              : '${widget.title} dihapus dari favorite.',
+                          wasFavorite
+                              ? '${widget.title} dihapus dari favorite.'
+                              : '${widget.title} ditambahkan ke favorite.',
                         ),
                       ),
                     );
                   },
 
                   icon: Icon(
-                    isFavorite
+                    widget.isFavorite
                         ? Icons.favorite
                         : Icons.favorite_border,
-                    color: isFavorite
+                    color: widget.isFavorite
                         ? Colors.red
                         : Colors.grey,
                   ),

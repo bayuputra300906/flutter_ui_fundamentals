@@ -3,10 +3,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'pages/home_page.dart';
-import 'pages/profile_page.dart';
-import 'pages/navigation_page.dart';
 
+
+import 'pages/navigation_page.dart';
 
 // ============================================================
 // LOAD STUDENT DATA

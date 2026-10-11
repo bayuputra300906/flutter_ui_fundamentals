@@ -170,13 +170,17 @@ class CompactLayout extends StatelessWidget {
           ],
         ),
 
+        
         const SizedBox(height: 20),
+
+        const LocalStateExample(),
 
         ...student['courses']
             .map<Widget>(
               (course) => buildCourseCard(course),
             )
             .toList(),
+
       ],
     );
   }
@@ -412,4 +416,52 @@ void main() {
   runApp(
     const MyApp(),
   );
+}
+
+
+class LocalStateExample extends StatefulWidget {
+  const LocalStateExample({super.key});
+
+  @override
+  State<LocalStateExample> createState() =>
+      _LocalStateExampleState();
+}
+
+class _LocalStateExampleState extends State<LocalStateExample> {
+  int counter = 0;
+
+  void incrementCounter() {
+    setState(() {
+      counter++;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Tahap 1 - Local State',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text('Jumlah klik: $counter'),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: incrementCounter,
+              child: const Text('Tambah'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

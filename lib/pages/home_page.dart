@@ -8,9 +8,21 @@ import '../widgets/course_menu_item.dart';
 // HOME PAGE - COURSE EXPLORER
 // ============================================================
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  int counter = 0;
+
+  void incrementCounter() {
+    setState(() {
+      counter++;
+    });
+  }
   @override
   Widget build(BuildContext context) {
     // ========================================================
@@ -232,6 +244,37 @@ class HomePage extends StatelessWidget {
             ),
 
             const SizedBox(height: 14),
+
+             // ==================================================
+            // LOCAL STATE DAN SETSTATE
+          // ==================================================
+
+Card(
+  margin: const EdgeInsets.only(bottom: 20),
+  child: Padding(
+    padding: const EdgeInsets.all(16),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Local State',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text('Jumlah klik: $counter'),
+        const SizedBox(height: 8),
+        ElevatedButton(
+          onPressed: incrementCounter,
+          child: const Text('Tambah'),
+        ),
+      ],
+    ),
+  ),
+),
+
 
             // ==================================================
             // LIST COURSE

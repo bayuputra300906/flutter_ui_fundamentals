@@ -14,48 +14,47 @@ class NavigationPage extends StatefulWidget {
 class _NavigationPageState extends State<NavigationPage> {
   int selectedIndex = 0;
 
-  // STATE FAVORIT BERSAMA
-  final Set<String> favorites = {};
+  // Satu sumber data favorit untuk Courses dan Favorites.
+  final ValueNotifier<Set<String>> favorites =
+    ValueNotifier<Set<String>>({});
 
   void toggleFavorite(String course) {
-    setState(() {
-      if (favorites.contains(course)) {
-        favorites.remove(course);
-      } else {
-        favorites.add(course);
-      }
-    });
+  final updatedFavorites = Set<String>.from(favorites.value);
+
+  if (updatedFavorites.contains(course)) {
+    updatedFavorites.remove(course);
+  } else {
+    updatedFavorites.add(course);
   }
 
-  // MEMILIH HALAMAN
+  favorites.value = updatedFavorites;
+}
+
   Widget buildSelectedPage() {
     switch (selectedIndex) {
       case 0:
         return const HomeTab();
 
       case 1:
-        return HomePage(
-          favorites: favorites,
-          onToggleFavorite: toggleFavorite,
-        );
+  return HomePage(
+    favorites: favorites.value,
+    onToggleFavorite: toggleFavorite,
+  );
 
       case 2:
         return const ProfilePage();
 
-      case 3:
-        return FavoritesPage(
-          favorites: favorites,
-          onToggleFavorite: toggleFavorite,
-        );
+     case 3:
+  return FavoritesPage(
+    favorites: favorites,
+    onToggleFavorite: toggleFavorite,
+  );
 
       default:
         return const HomeTab();
     }
   }
 
-  // =========================
-  // NAVIGATION BAR
-  // =========================
   Widget buildNavigationBar() {
     return NavigationBar(
       selectedIndex: selectedIndex,
@@ -89,9 +88,6 @@ class _NavigationPageState extends State<NavigationPage> {
     );
   }
 
-  // =========================
-  // NAVIGATION RAIL
-  // =========================
   Widget buildNavigationRail() {
     return NavigationRail(
       selectedIndex: selectedIndex,
@@ -126,16 +122,16 @@ class _NavigationPageState extends State<NavigationPage> {
     );
   }
 
-  // =========================
-  // BUILD
-  // =========================
+ @override
+void dispose() {
+  favorites.dispose();
+  super.dispose();
+}
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        // =========================
-        // COMPACT / MEDIUM
-        // =========================
         if (constraints.maxWidth < 840) {
           return Scaffold(
             body: buildSelectedPage(),
@@ -143,17 +139,12 @@ class _NavigationPageState extends State<NavigationPage> {
           );
         }
 
-        // =========================
-        // EXPANDED
-        // =========================
         return Scaffold(
           body: Row(
             children: [
               buildNavigationRail(),
               const VerticalDivider(width: 1),
-              Expanded(
-                child: buildSelectedPage(),
-              ),
+              Expanded(child: buildSelectedPage()),
             ],
           ),
         );
@@ -162,19 +153,13 @@ class _NavigationPageState extends State<NavigationPage> {
   }
 }
 
-// ======================================================
-// HOME TAB
-// ======================================================
-
 class HomeTab extends StatelessWidget {
   const HomeTab({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Home'),
-      ),
+      appBar: AppBar(title: const Text('Home')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -190,10 +175,7 @@ class HomeTab extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(
-                    Icons.school,
-                    size: 45,
-                  ),
+                  const Icon(Icons.school, size: 45),
                   const SizedBox(height: 12),
                   const Text(
                     'Course Explorer',
@@ -203,20 +185,14 @@ class HomeTab extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Selamat datang di Course Explorer.',
-                  ),
+                  const Text('Selamat datang di Course Explorer.'),
                   const SizedBox(height: 16),
                   const Text(
                     'Nama: Gede Bayu Putra Darmawan',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
-                    'NIM: 2415051105',
-                  ),
+                  const Text('NIM: 2415051105'),
                 ],
               ),
             ),

@@ -1,7 +1,8 @@
+
 import 'package:flutter/material.dart';
 
 class FavoritesPage extends StatelessWidget {
-  final Set<String> favorites;
+  final ValueNotifier<Set<String>> favorites;
   final ValueChanged<String> onToggleFavorite;
 
   const FavoritesPage({
@@ -16,21 +17,21 @@ class FavoritesPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Favorites'),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          // Widget pertama menerima state favorites dari parent.
-          FavoriteSummary(
-            favorites: favorites,
-          ),
-          const SizedBox(height: 12),
-
-          // Widget kedua menerima state dan callback dari parent.
-          CourseFavoriteList(
-            favorites: favorites,
-            onToggleFavorite: onToggleFavorite,
-          ),
-        ],
+      body: ValueListenableBuilder<Set<String>>(
+        valueListenable: favorites,
+        builder: (context, favoriteList, child) {
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              FavoriteSummary(favorites: favoriteList),
+              const SizedBox(height: 12),
+              CourseFavoriteList(
+                favorites: favoriteList,
+                onToggleFavorite: onToggleFavorite,
+              ),
+            ],
+          );
+        },
       ),
     );
   }

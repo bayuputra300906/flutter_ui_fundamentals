@@ -1,5 +1,5 @@
-
 import 'package:flutter/material.dart';
+import '../course_state.dart';
 import 'home_page.dart';
 import 'profile_page.dart';
 import 'favorites_page.dart';
@@ -15,20 +15,12 @@ class _NavigationPageState extends State<NavigationPage> {
   int selectedIndex = 0;
 
   // Satu sumber data favorit untuk Courses dan Favorites.
-  final ValueNotifier<Set<String>> favorites =
-    ValueNotifier<Set<String>>({});
+  final CourseState courseState = CourseState();
 
+  // Mengubah daftar favorit melalui CourseState.
   void toggleFavorite(String course) {
-  final updatedFavorites = Set<String>.from(favorites.value);
-
-  if (updatedFavorites.contains(course)) {
-    updatedFavorites.remove(course);
-  } else {
-    updatedFavorites.add(course);
+    courseState.toggleFavorite(course);
   }
-
-  favorites.value = updatedFavorites;
-}
 
   Widget buildSelectedPage() {
     switch (selectedIndex) {
@@ -36,19 +28,19 @@ class _NavigationPageState extends State<NavigationPage> {
         return const HomeTab();
 
       case 1:
-  return HomePage(
-    favorites: favorites.value,
-    onToggleFavorite: toggleFavorite,
-  );
+        return HomePage(
+          favorites: courseState.favorites,
+          onToggleFavorite: toggleFavorite,
+        );
 
       case 2:
         return const ProfilePage();
 
-     case 3:
-  return FavoritesPage(
-    favorites: favorites,
-    onToggleFavorite: toggleFavorite,
-  );
+      case 3:
+        return FavoritesPage(
+          favorites: courseState.favorites,
+          onToggleFavorite: toggleFavorite,
+        );
 
       default:
         return const HomeTab();
@@ -122,11 +114,11 @@ class _NavigationPageState extends State<NavigationPage> {
     );
   }
 
- @override
-void dispose() {
-  favorites.dispose();
-  super.dispose();
-}
+  @override
+  void dispose() {
+    courseState.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -134,7 +126,12 @@ void dispose() {
       builder: (context, constraints) {
         if (constraints.maxWidth < 840) {
           return Scaffold(
-            body: buildSelectedPage(),
+            body: AnimatedBuilder(
+              animation: courseState,
+              builder: (context, child) {
+                return buildSelectedPage();
+              },
+            ),
             bottomNavigationBar: buildNavigationBar(),
           );
         }
@@ -144,7 +141,14 @@ void dispose() {
             children: [
               buildNavigationRail(),
               const VerticalDivider(width: 1),
-              Expanded(child: buildSelectedPage()),
+              Expanded(
+                child: AnimatedBuilder(
+                  animation: courseState,
+                  builder: (context, child) {
+                    return buildSelectedPage();
+                  },
+                ),
+              ),
             ],
           ),
         );

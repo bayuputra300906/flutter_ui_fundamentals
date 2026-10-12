@@ -1,8 +1,7 @@
-
 import 'package:flutter/material.dart';
 
 class FavoritesPage extends StatelessWidget {
-  final ValueNotifier<Set<String>> favorites;
+  final Set<String> favorites;
   final ValueChanged<String> onToggleFavorite;
 
   const FavoritesPage({
@@ -17,29 +16,20 @@ class FavoritesPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Favorites'),
       ),
-      body: ValueListenableBuilder<Set<String>>(
-        valueListenable: favorites,
-        builder: (context, favoriteList, child) {
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              FavoriteSummary(favorites: favoriteList),
-              const SizedBox(height: 12),
-              CourseFavoriteList(
-                favorites: favoriteList,
-                onToggleFavorite: onToggleFavorite,
-              ),
-            ],
-          );
-        },
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          FavoriteSummary(favorites: favorites),
+          const SizedBox(height: 12),
+          CourseFavoriteList(
+            favorites: favorites,
+            onToggleFavorite: onToggleFavorite,
+          ),
+        ],
       ),
     );
   }
 }
-
-// ======================================================
-// RINGKASAN FAVORIT
-// ======================================================
 
 class FavoriteSummary extends StatelessWidget {
   final Set<String> favorites;
@@ -70,10 +60,6 @@ class FavoriteSummary extends StatelessWidget {
   }
 }
 
-// ======================================================
-// DAFTAR MATA KULIAH FAVORIT
-// ======================================================
-
 class CourseFavoriteList extends StatelessWidget {
   final Set<String> favorites;
   final ValueChanged<String> onToggleFavorite;
@@ -90,32 +76,37 @@ class CourseFavoriteList extends StatelessWidget {
       return const Card(
         child: Padding(
           padding: EdgeInsets.all(24),
-          child: Center(
-            child: Text('Belum ada mata kuliah favorit.'),
+          child: Column(
+            children: [
+              Icon(
+                Icons.favorite_border,
+                size: 48,
+              ),
+              SizedBox(height: 12),
+              Text('Belum ada mata kuliah favorit.'),
+            ],
           ),
         ),
       );
     }
 
-    return Card(
-      child: Column(
-        children: favorites.map((course) {
-          return ListTile(
-            leading: const Icon(
-              Icons.favorite,
-              color: Colors.red,
-            ),
+    return Column(
+      children: favorites.map((course) {
+        return Card(
+          child: ListTile(
+            leading: const Icon(Icons.school),
             title: Text(course),
             trailing: IconButton(
+              icon: const Icon(
+                Icons.favorite,
+                color: Colors.red,
+              ),
               tooltip: 'Hapus dari favorit',
-              icon: const Icon(Icons.delete_outline),
-              onPressed: () {
-                onToggleFavorite(course);
-              },
+              onPressed: () => onToggleFavorite(course),
             ),
-          );
-        }).toList(),
-      ),
+          ),
+        );
+      }).toList(),
     );
   }
 }

@@ -134,34 +134,55 @@ void dispose() {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<CourseState>(
-      builder: (context, courseState, child) {
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            if (constraints.maxWidth < 840) {
-              return Scaffold(
-                body: buildSelectedPage(courseState),
-                bottomNavigationBar: buildNavigationBar(),
-              );
-            }
+    final courseState = context.watch<CourseState>();
+    final favoriteCount = courseState.favorites.length;
 
-            return Scaffold(
-              body: Row(
-                children: [
-                  buildNavigationRail(),
-                  const VerticalDivider(width: 1),
-                  Expanded(
-                    child: buildSelectedPage(courseState),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 840) {
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text('Course Explorer'),
+              actions: [
+                Padding(
+                  padding: const EdgeInsets.only(right: 16),
+                  child: Center(
+                    child: Text('Favorit: $favoriteCount'),
                   ),
-                ],
+                ),
+              ],
+            ),
+            body: buildSelectedPage(courseState),
+            bottomNavigationBar: buildNavigationBar(),
+          );
+        }
+
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Course Explorer'),
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 16),
+                child: Center(
+                  child: Text('Favorit: $favoriteCount'),
+                ),
               ),
-            );
-          },
+            ],
+          ),
+          body: Row(
+            children: [
+              buildNavigationRail(),
+              const VerticalDivider(width: 1),
+              Expanded(
+                child: buildSelectedPage(courseState),
+              ),
+            ],
+          ),
         );
       },
     );
   }
- } // Menutup kelas _NavigationPageState
+  }// Menutup kelas _NavigationPageState
 
 class HomeTab extends StatelessWidget {
   const HomeTab({super.key});

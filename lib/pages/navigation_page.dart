@@ -3,6 +3,8 @@ import '../course_state.dart';
 import 'home_page.dart';
 import 'profile_page.dart';
 import 'favorites_page.dart';
+import 'package:provider/provider.dart';
+import 'study_activity_page.dart';
 
 class NavigationPage extends StatefulWidget {
   const NavigationPage({super.key});
@@ -14,38 +16,39 @@ class NavigationPage extends StatefulWidget {
 class _NavigationPageState extends State<NavigationPage> {
   int selectedIndex = 0;
 
-  // Satu sumber data favorit untuk Courses dan Favorites.
-  final CourseState courseState = CourseState();
-
   // Mengubah daftar favorit melalui CourseState.
   void toggleFavorite(String course) {
-    courseState.toggleFavorite(course);
+  context.read<CourseState>().toggleFavorite(course);
+}
+
+ 
+Widget buildSelectedPage(CourseState courseState) {
+  switch (selectedIndex) {
+    case 0:
+      return const HomeTab();
+
+    case 1:
+      return HomePage(
+        favorites: courseState.favorites,
+        onToggleFavorite: toggleFavorite,
+      );
+
+    case 2:
+      return const ProfilePage();
+
+    case 3:
+      return FavoritesPage(
+        favorites: courseState.favorites,
+        onToggleFavorite: toggleFavorite,
+      );
+
+    case 4:
+      return const StudyActivityPage();
+
+    default:
+      return const HomeTab();
   }
-
-  Widget buildSelectedPage() {
-    switch (selectedIndex) {
-      case 0:
-        return const HomeTab();
-
-      case 1:
-        return HomePage(
-          favorites: courseState.favorites,
-          onToggleFavorite: toggleFavorite,
-        );
-
-      case 2:
-        return const ProfilePage();
-
-      case 3:
-        return FavoritesPage(
-          favorites: courseState.favorites,
-          onToggleFavorite: toggleFavorite,
-        );
-
-      default:
-        return const HomeTab();
-    }
-  }
+}
 
   Widget buildNavigationBar() {
     return NavigationBar(
@@ -75,6 +78,11 @@ class _NavigationPageState extends State<NavigationPage> {
           icon: Icon(Icons.favorite_border),
           selectedIcon: Icon(Icons.favorite),
           label: 'Favorites',
+        ),
+        NavigationDestination(
+           icon: Icon(Icons.menu_book_outlined),
+           selectedIcon: Icon(Icons.menu_book),
+           label: 'Aktivitas',
         ),
       ],
     );
@@ -110,52 +118,50 @@ class _NavigationPageState extends State<NavigationPage> {
           selectedIcon: Icon(Icons.favorite),
           label: Text('Favorites'),
         ),
+       NavigationRailDestination(
+          icon: Icon(Icons.menu_book_outlined),
+          selectedIcon: Icon(Icons.menu_book),
+          label: Text('Aktivitas'),
+      ),
       ],
     );
   }
 
   @override
-  void dispose() {
-    courseState.dispose();
-    super.dispose();
-  }
+void dispose() {
+  super.dispose();
+}
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth < 840) {
-          return Scaffold(
-            body: AnimatedBuilder(
-              animation: courseState,
-              builder: (context, child) {
-                return buildSelectedPage();
-              },
-            ),
-            bottomNavigationBar: buildNavigationBar(),
-          );
-        }
+    return Consumer<CourseState>(
+      builder: (context, courseState, child) {
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            if (constraints.maxWidth < 840) {
+              return Scaffold(
+                body: buildSelectedPage(courseState),
+                bottomNavigationBar: buildNavigationBar(),
+              );
+            }
 
-        return Scaffold(
-          body: Row(
-            children: [
-              buildNavigationRail(),
-              const VerticalDivider(width: 1),
-              Expanded(
-                child: AnimatedBuilder(
-                  animation: courseState,
-                  builder: (context, child) {
-                    return buildSelectedPage();
-                  },
-                ),
+            return Scaffold(
+              body: Row(
+                children: [
+                  buildNavigationRail(),
+                  const VerticalDivider(width: 1),
+                  Expanded(
+                    child: buildSelectedPage(courseState),
+                  ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
   }
-}
+ } // Menutup kelas _NavigationPageState
 
 class HomeTab extends StatelessWidget {
   const HomeTab({super.key});

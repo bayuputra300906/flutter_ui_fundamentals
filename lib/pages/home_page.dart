@@ -3,9 +3,8 @@ import 'package:flutter/material.dart';
 
 import 'detail_page.dart';
 import '../widgets/course_menu_item.dart';
-import '../models/course.dart';
-import '../services/course_service.dart';
-
+import 'package:provider/provider.dart';
+import '../providers/course_provider.dart';
 // ============================================================
 // HOME PAGE - COURSE EXPLORER
 // ============================================================
@@ -26,12 +25,14 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int counter = 0;
-  late Future<List<Course>> coursesFuture;
-
+  
 @override
 void initState() {
   super.initState();
-  coursesFuture = CourseService().loadCourses();
+
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    context.read<CourseProvider>().loadCourses();
+  });
 }
 
   void incrementCounter() {
@@ -145,24 +146,25 @@ void initState() {
             // LIST COURSE
             // ==================================================
 
-           FutureBuilder<List<Course>>(
-  future: coursesFuture,
-  builder: (context, snapshot) {
-    if (snapshot.connectionState == ConnectionState.waiting) {
+           
+Consumer<CourseProvider>(
+  builder: (context, provider, child) {
+    if (provider.isLoading) {
       return const Center(
         child: CircularProgressIndicator(),
       );
     }
 
-    if (snapshot.hasError) {
-      return Text('Gagal memuat mata kuliah: ${snapshot.error}');
+    if (provider.error != null) {
+      return Text(
+        'Gagal memuat mata kuliah: ${provider.error}',
+      );
     }
 
-    final courses = snapshot.data ?? [];
+    final courses = provider.courses;
 
     return Column(
       children: courses.map((course) {
-        // Metadata tampilan yang sebelumnya ada di daftar manual.
         final presentation = {
           'MOB01': {
             'subtitle': 'Version control dan kolaborasi proyek',
@@ -199,9 +201,6 @@ void initState() {
           'planned': 'Rencana',
         }[course.status] ?? course.status;
 
-        debugPrint('Status yang dikirim ke kartu: $status');
-        
-        // DetailPage yang sekarang masih menerima Map.
         final courseMap = {
           'code': course.code,
           'title': course.title,
@@ -221,12 +220,10 @@ void initState() {
             subtitle: presentation['subtitle'] as String,
             credits: '${course.credits} SKS',
             status: status,
-
             isFavorite: widget.favorites.contains(title),
             onFavoriteTap: () {
               widget.onToggleFavorite(title);
             },
-
             onTap: () {
               Navigator.push(
                 context,
@@ -241,6 +238,7 @@ void initState() {
     );
   },
 ),
+
 
             const SizedBox(height: 14),
 

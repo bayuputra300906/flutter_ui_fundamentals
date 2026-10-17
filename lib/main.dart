@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'course_state.dart';
-
+import 'providers/course_provider.dart';
+import 'repositories/course_repository.dart';
+import 'services/course_service.dart';
 
 
 import 'pages/navigation_page.dart';
@@ -415,13 +417,21 @@ class MyApp extends StatelessWidget {
 
 void main() {
   runApp(
-    ChangeNotifierProvider(
-      create: (context) => CourseState(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (context) => CourseState(),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => CourseProvider(
+            CourseRepository(CourseService()),
+          )..loadCourses(),
+        ),
+      ],
       child: const MyApp(),
     ),
   );
 }
-
 
 class LocalStateExample extends StatefulWidget {
   const LocalStateExample({super.key});

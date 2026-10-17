@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 
 import 'detail_page.dart';
 import '../widgets/course_menu_item.dart';
+import '../models/course.dart';
+import '../services/course_service.dart';
 
 // ============================================================
 // HOME PAGE - COURSE EXPLORER
@@ -24,6 +26,13 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int counter = 0;
+  late Future<List<Course>> coursesFuture;
+
+@override
+void initState() {
+  super.initState();
+  coursesFuture = CourseService().loadCourses();
+}
 
   void incrementCounter() {
     setState(() {
@@ -37,54 +46,7 @@ class _HomePageState extends State<HomePage> {
     // DATA COURSE
     // ========================================================
 
-    final List<Map<String, dynamic>> courses = [
-      {
-        'code': 'MOB01',
-        'title': 'Git & GitHub',
-        'subtitle': 'Version control dan kolaborasi proyek',
-        'credits': 2,
-        'status': 'Selesai',
-        'icon': Icons.code,
-        'iconColor': Colors.indigo,
-      },
-      {
-        'code': 'MOB02',
-        'title': 'Dart Fundamentals',
-        'subtitle': 'Dasar-dasar pemrograman Dart',
-        'credits': 2,
-        'status': 'Selesai',
-        'icon': Icons.menu_book,
-        'iconColor': Colors.blue,
-      },
-      {
-        'code': 'MOB03',
-        'title': 'Flutter UI',
-        'subtitle': 'Membangun tampilan aplikasi Flutter',
-        'credits': 3,
-        'status': 'Aktif',
-        'icon': Icons.grid_view,
-        'iconColor': Colors.teal,
-      },
-      {
-        'code': 'MOB04',
-        'title': 'Navigation',
-        'subtitle': 'Navigasi antarhalaman Flutter',
-        'credits': 2,
-        'status': 'Rencana',
-        'icon': Icons.navigation,
-        'iconColor': Colors.orange,
-      },
-      {
-        'code': 'MOB05',
-        'title': 'State Management',
-        'subtitle': 'Mengelola state pada aplikasi',
-        'credits': 3,
-        'status': 'Rencana',
-        'icon': Icons.settings,
-        'iconColor': Colors.deepPurple,
-      },
-    ];
-
+    
     return Scaffold(
       // ======================================================
       // APP BAR
@@ -183,37 +145,102 @@ class _HomePageState extends State<HomePage> {
             // LIST COURSE
             // ==================================================
 
-            ...courses.map((course) {
-              final String title = course['title'] as String;
+           FutureBuilder<List<Course>>(
+  future: coursesFuture,
+  builder: (context, snapshot) {
+    if (snapshot.connectionState == ConnectionState.waiting) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
 
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: CourseMenuItem(
-                  icon: course['icon'] as IconData,
-                  iconColor: course['iconColor'] as Color,
-                  title: title,
-                  subtitle: course['subtitle'] as String,
-                  credits: '${course['credits']} SKS',
-                  status: course['status'] as String,
+    if (snapshot.hasError) {
+      return Text('Gagal memuat mata kuliah: ${snapshot.error}');
+    }
 
-                  // STATE FAVORIT BERSAMA
-                  isFavorite: widget.favorites.contains(title),
-                  onFavoriteTap: () {
-                    widget.onToggleFavorite(title);
-                  },
+    final courses = snapshot.data ?? [];
 
-                  // PASSING DATA KE DETAIL PAGE
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => DetailPage(course: course),
-                      ),
-                    );
-                  },
+    return Column(
+      children: courses.map((course) {
+        // Metadata tampilan yang sebelumnya ada di daftar manual.
+        final presentation = {
+          'MOB01': {
+            'subtitle': 'Version control dan kolaborasi proyek',
+            'icon': Icons.code,
+            'iconColor': Colors.indigo,
+          },
+          'MOB02': {
+            'subtitle': 'Dasar-dasar pemrograman Dart',
+            'icon': Icons.menu_book,
+            'iconColor': Colors.blue,
+          },
+          'MOB03': {
+            'subtitle': 'Membangun tampilan aplikasi Flutter',
+            'icon': Icons.grid_view,
+            'iconColor': Colors.teal,
+          },
+          'MOB04': {
+            'subtitle': 'Navigasi antarhalaman Flutter',
+            'icon': Icons.navigation,
+            'iconColor': Colors.orange,
+          },
+          'MOB05': {
+            'subtitle': 'Mengelola state pada aplikasi',
+            'icon': Icons.settings,
+            'iconColor': Colors.deepPurple,
+          },
+        }[course.code]!;
+
+        final title = course.title;
+
+        final status = {
+          'done': 'Selesai',
+          'active': 'Aktif',
+          'planned': 'Rencana',
+        }[course.status] ?? course.status;
+
+        debugPrint('Status yang dikirim ke kartu: $status');
+        
+        // DetailPage yang sekarang masih menerima Map.
+        final courseMap = {
+          'code': course.code,
+          'title': course.title,
+          'credits': course.credits,
+          'status': status,
+          'subtitle': presentation['subtitle'],
+          'icon': presentation['icon'],
+          'iconColor': presentation['iconColor'],
+        };
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: CourseMenuItem(
+            icon: presentation['icon'] as IconData,
+            iconColor: presentation['iconColor'] as Color,
+            title: title,
+            subtitle: presentation['subtitle'] as String,
+            credits: '${course.credits} SKS',
+            status: status,
+
+            isFavorite: widget.favorites.contains(title),
+            onFavoriteTap: () {
+              widget.onToggleFavorite(title);
+            },
+
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => DetailPage(course: courseMap),
                 ),
               );
-            }),
+            },
+          ),
+        );
+      }).toList(),
+    );
+  },
+),
 
             const SizedBox(height: 14),
 

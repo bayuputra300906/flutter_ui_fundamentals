@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'feedback_page.dart';
 import 'material_detail_page.dart';
+import 'package:provider/provider.dart';
+import '../providers/course_state.dart';
 
 class DetailPage extends StatelessWidget {
   final Map<String, dynamic> course;
@@ -762,8 +764,8 @@ final totalFavorites = favorites.length;
                 Expanded(
                   child: FilledButton.icon(
                     onPressed: () {
-                      Navigator.pop(context, true);
-                    },
+  context.read<CourseState>().toggleFavorite(code);
+},
                     icon: const Icon(Icons.favorite),
                     label: const Text('Pilih / Favorit'),
                   ),

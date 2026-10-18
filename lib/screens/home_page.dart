@@ -220,10 +220,10 @@ Consumer<CourseProvider>(
             subtitle: presentation['subtitle'] as String,
             credits: '${course.credits} SKS',
             status: status,
-            isFavorite: widget.favorites.contains(title),
+            isFavorite: widget.favorites.contains(course.code),
             onFavoriteTap: () {
-              widget.onToggleFavorite(title);
-            },
+            widget.onToggleFavorite(course.code);
+        },
             onTap: () {
               Navigator.push(
                 context,

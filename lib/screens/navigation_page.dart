@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../course_state.dart';
+import '../providers/course_state.dart';
 import 'home_page.dart';
 import 'profile_page.dart';
 import 'favorites_page.dart';

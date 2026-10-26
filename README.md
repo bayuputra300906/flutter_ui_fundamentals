@@ -15,3 +15,10 @@ A few resources to get you started if this is your first Flutter project:
 For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
+
+## Tahap 1 — REST Endpoint
+
+- Endpoint: `https://jsonplaceholder.typicode.com/posts/1`
+- HTTP Method: `GET`
+- Resource: `posts`
+- Status Code: `200 OK`

@@ -7,10 +7,6 @@ import 'providers/course_state.dart';
 import 'providers/course_provider.dart';
 import 'repositories/course_repository.dart';
 import 'services/course_service.dart';
-
-
-import 'screens/navigation_page.dart';
-
 // ============================================================
 // LOAD STUDENT DATA
 // ============================================================
@@ -405,7 +401,7 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
 
-      home: const NavigationPage(),
+     home: const ProviderContextErrorExample(),
     );
   }
 }
@@ -416,6 +412,22 @@ class MyApp extends StatelessWidget {
 // ============================================================
 
 void main() {
+  // Pengujian REST API untuk Tahap 2.
+  debugPrint('=== MULAI PENGUJIAN REST API ===');
+
+  () async {
+    try {
+      final data = await CourseService().fetchCourses();
+
+      debugPrint('REST API berhasil diuji.');
+      debugPrint('Jumlah data diterima: ${data.length}');
+    } catch (error, stackTrace) {
+      debugPrint('REST API gagal: $error');
+      debugPrint('$stackTrace');
+    }
+  }();
+
+
   runApp(
     MultiProvider(
       providers: [
@@ -478,4 +490,38 @@ class _LocalStateExampleState extends State<LocalStateExample> {
       ),
     );
   }
+}
+class CaseBState extends ChangeNotifier {
+  int counter = 0;
+
+  void increment() {
+    counter++;
+    notifyListeners();
+  }
+}
+
+class ProviderContextErrorExample extends StatelessWidget {
+  const ProviderContextErrorExample({super.key});
+
+  @override
+Widget build(BuildContext context) {
+  // Sengaja membaca Provider dari context yang salah.
+  final state = context.watch<CaseBState>();
+
+  return ChangeNotifierProvider(
+    create: (_) => CaseBState(),
+    child: Builder(
+      builder: (context) {
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Kasus B - Provider Error'),
+          ),
+          body: Center(
+            child: Text('Jumlah klik: ${state.counter}'),
+          ),
+        );
+      },
+    ),
+  );
+}
 }

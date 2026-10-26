@@ -1,9 +1,15 @@
-
 import 'dart:convert';
+
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart';
+
 import '../models/course.dart';
 
+const String apiUrl = 'https://jsonplaceholder.typicode.com/posts';
+
 class CourseService {
+  // Fungsi lama: membaca mata kuliah dari JSON lokal.
   Future<List<Course>> loadCourses() async {
     final jsonString = await rootBundle.loadString(
       'assets/data/student_data.json',
@@ -17,5 +23,24 @@ class CourseService {
           (e) => Course.fromJson(e as Map<String, dynamic>),
         )
         .toList();
+  }
+
+  // Fungsi baru: menguji REST API menggunakan HTTP GET.
+  Future<List<dynamic>> fetchCourses() async {
+    debugPrint('=== MULAI REST API ===');
+
+    final response = await http.get(Uri.parse(apiUrl));
+
+    debugPrint('HTTP Status Code: ${response.statusCode}');
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body) as List<dynamic>;
+
+      debugPrint('Jumlah item: ${data.length}');
+
+      return data;
+    }
+
+    throw Exception('HTTP ${response.statusCode}');
   }
 }

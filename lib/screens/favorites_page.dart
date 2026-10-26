@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+
 class FavoritesPage extends StatelessWidget {
   final Set<String> favorites;
   final ValueChanged<String> onToggleFavorite;

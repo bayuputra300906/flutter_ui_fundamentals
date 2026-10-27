@@ -165,34 +165,38 @@ Consumer<CourseProvider>(
 
     return Column(
       children: courses.map((course) {
-        final presentation = {
-          'MOB01': {
-            'subtitle': 'Version control dan kolaborasi proyek',
-            'icon': Icons.code,
-            'iconColor': Colors.indigo,
-          },
-          'MOB02': {
-            'subtitle': 'Dasar-dasar pemrograman Dart',
-            'icon': Icons.menu_book,
-            'iconColor': Colors.blue,
-          },
-          'MOB03': {
-            'subtitle': 'Membangun tampilan aplikasi Flutter',
-            'icon': Icons.grid_view,
-            'iconColor': Colors.teal,
-          },
-          'MOB04': {
-            'subtitle': 'Navigasi antarhalaman Flutter',
-            'icon': Icons.navigation,
-            'iconColor': Colors.orange,
-          },
-          'MOB05': {
-            'subtitle': 'Mengelola state pada aplikasi',
-            'icon': Icons.settings,
-            'iconColor': Colors.deepPurple,
-          },
-        }[course.code]!;
+      
+final presentation = {
+  'MOB01': {
+    'subtitle': 'Version control dan kolaborasi proyek',
+    'icon': Icons.code,
+    'iconColor': Colors.indigo,
+  },
+  'MOB02': {
+    'subtitle': 'Dasar-dasar pemrograman Dart',
+    'icon': Icons.menu_book,
+    'iconColor': Colors.blue,
+  },
+  'MOB03': {
+    'subtitle': 'Membangun tampilan aplikasi Flutter',
+    'icon': Icons.grid_view,
+    'iconColor': Colors.teal,
+  },
+  'MOB04': {
+    'subtitle': 'Navigasi antarhalaman Flutter',
+    'icon': Icons.navigation,
+    'iconColor': Colors.orange,
+  },
+  'MOB05': {
+    'subtitle': 'Mengelola state pada aplikasi',
+    'icon': Icons.settings,
+    'iconColor': Colors.deepPurple,
+  },
+}[course.code];
 
+if (presentation == null) {
+  return const SizedBox.shrink();
+}
         final title = course.title;
 
         final status = {

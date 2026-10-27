@@ -6,8 +6,8 @@ import 'package:provider/provider.dart';
 import 'providers/course_state.dart';
 import 'providers/course_provider.dart';
 import 'repositories/course_repository.dart';
-import 'services/course_service.dart';
 import 'screens/navigation_page.dart';
+import 'services/course_api_service.dart';
 // ============================================================
 // LOAD STUDENT DATA
 // ============================================================
@@ -412,7 +412,7 @@ void main() {
 
   () async {
     try {
-      final data = await CourseService().fetchCourses();
+      final data = await CourseApiService(apiUrl).getCourses();
 
       debugPrint('REST API berhasil diuji.');
       debugPrint('Jumlah data diterima: ${data.length}');
@@ -430,10 +430,12 @@ void main() {
           create: (context) => CourseState(),
         ),
         ChangeNotifierProvider(
-          create: (context) => CourseProvider(
-            CourseRepository(CourseService()),
-          )..loadCourses(),
-        ),
+  create: (context) => CourseProvider(
+    CourseRepository(
+      CourseApiService(apiUrl),
+    ),
+  )..loadCourses(),
+),
       ],
       child: const MyApp(),
     ),

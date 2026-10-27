@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
@@ -88,5 +89,25 @@ class CourseApiService {
     }
 
     throw Exception('Gagal membuat course');
+  }
+
+  // Memperbarui mata kuliah melalui HTTP PUT
+  Future<void> updateCourse(int id, Course course) async {
+    debugPrint('=== MEMPERBARUI COURSE ===');
+
+    final response = await http.put(
+      Uri.parse('$baseUrl/$id'),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(course.toJson()),
+    );
+
+    debugPrint('HTTP Status Code: ${response.statusCode}');
+
+    if (response.statusCode < 200 ||
+        response.statusCode >= 300) {
+      throw Exception('Gagal memperbarui course');
+    }
   }
 }

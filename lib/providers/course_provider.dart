@@ -48,4 +48,25 @@ class CourseProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+  // Memperbarui mata kuliah dan memuat ulang daftar
+  Future<void> updateCourse(int id, Course course) async {
+    if (isSaving) return;
+
+    isSaving = true;
+    error = null;
+    notifyListeners();
+
+    try {
+      await repository.updateCourse(id, course);
+
+      // Muat ulang daftar mata kuliah.
+      await loadCourses();
+    } catch (e) {
+      error = e.toString();
+      rethrow;
+    } finally {
+      isSaving = false;
+      notifyListeners();
+    }
+  }
 }

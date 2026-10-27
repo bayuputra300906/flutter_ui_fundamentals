@@ -110,4 +110,20 @@ class CourseApiService {
       throw Exception('Gagal memperbarui course');
     }
   }
+
+  // Menghapus mata kuliah melalui HTTP DELETE
+Future<void> deleteCourse(int id) async {
+  debugPrint('=== MENGHAPUS COURSE ===');
+
+  final response = await http.delete(
+    Uri.parse('$baseUrl/$id'),
+  );
+
+  debugPrint('HTTP DELETE Status Code: ${response.statusCode}');
+
+  if (response.statusCode < 200 ||
+      response.statusCode >= 300) {
+    throw Exception('Gagal menghapus course');
+  }
+}
 }

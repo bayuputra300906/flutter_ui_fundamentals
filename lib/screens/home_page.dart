@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../providers/course_provider.dart';
 import '../widgets/error_view.dart';
 import 'add_course_page.dart';
+import '../models/course.dart';
 // ============================================================
 // HOME PAGE - COURSE EXPLORER
 // ============================================================
@@ -20,6 +21,66 @@ class HomePage extends StatefulWidget {
     required this.favorites,
     required this.onToggleFavorite,
   });
+
+  Future<void> confirmDeleteCourse(
+  BuildContext context,
+  Course course,
+) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) {
+      return AlertDialog(
+        title: const Text('Hapus Mata Kuliah?'),
+        content: Text(
+          'Apakah kamu yakin ingin menghapus '
+          '${course.title}?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext, false);
+            },
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(dialogContext, true);
+            },
+            child: const Text('Hapus'),
+          ),
+        ],
+      );
+    },
+  );
+
+  if (confirmed != true || !context.mounted) {
+    return;
+  }
+
+  try {
+    await context.read<CourseProvider>().deleteCourse(
+          course.id!,
+        );
+
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '${course.title} berhasil dihapus.',
+        ),
+      ),
+    );
+  } catch (e) {
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Gagal menghapus mata kuliah: $e'),
+      ),
+    );
+  }
+}
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -247,14 +308,19 @@ if (presentation == null) {
             credits: '${course.credits} SKS',
             status: status,
             isFavorite: widget.favorites.contains(course.code),
-            onFavoriteTap: () {
-            widget.onToggleFavorite(course.code);
-        },
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => DetailPage(course: courseMap),
+           onFavoriteTap: () {
+  widget.onToggleFavorite(course.code);
+},
+
+onDelete: () {
+  widget.confirmDeleteCourse(context, course);
+},
+
+onTap: () {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => DetailPage(course: courseMap),
                 ),
               );
             },

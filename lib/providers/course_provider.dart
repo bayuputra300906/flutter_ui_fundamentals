@@ -69,4 +69,24 @@ class CourseProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+Future<void> deleteCourse(int id) async {
+  if (isSaving) return;
+
+  isSaving = true;
+  error = null;
+  notifyListeners();
+
+  try {
+    await repository.deleteCourse(id);
+
+    // Hapus mata kuliah dari daftar lokal setelah DELETE berhasil.
+    courses = courses.where((course) => course.id != id).toList();
+  } catch (e) {
+    error = e.toString();
+    rethrow;
+  } finally {
+    isSaving = false;
+    notifyListeners();
+  }
+}
 }

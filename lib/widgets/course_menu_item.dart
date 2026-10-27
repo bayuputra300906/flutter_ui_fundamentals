@@ -10,19 +10,21 @@ class CourseMenuItem extends StatefulWidget {
   final VoidCallback onTap;
   final bool isFavorite;
   final VoidCallback onFavoriteTap;
+  final VoidCallback onDelete;
 
-  const CourseMenuItem({
-    super.key,
-    required this.icon,
-    required this.iconColor,
-    required this.title,
-    required this.subtitle,
-    required this.credits,
-    required this.status,
-    required this.onTap,
-    required this.isFavorite,
-    required this.onFavoriteTap,
-  });
+const CourseMenuItem({
+  super.key,
+  required this.icon,
+  required this.iconColor,
+  required this.title,
+  required this.subtitle,
+  required this.credits,
+  required this.status,
+  required this.onTap,
+  required this.isFavorite,
+  required this.onFavoriteTap,
+  required this.onDelete,
+});
 
   @override
   State<CourseMenuItem> createState() => _CourseMenuItemState();
@@ -212,6 +214,19 @@ class _CourseMenuItemState extends State<CourseMenuItem> {
                         : Colors.grey,
                   ),
                 ),
+
+                // ==================================================
+// DELETE BUTTON
+// ==================================================
+
+IconButton(
+  tooltip: 'Hapus mata kuliah',
+  onPressed: widget.onDelete,
+  icon: const Icon(
+    Icons.delete_outline,
+    color: Colors.red,
+  ),
+),
 
                 // ==================================================
                 // ARROW

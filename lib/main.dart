@@ -89,27 +89,118 @@ Icon buildStatusIcon(String status) {
 // COURSE CARD
 // ============================================================
 
-Widget buildCourseCard(Map<String, dynamic> course) {
-  final String status = course['status'];
+Widget buildCourseCard(
+  BuildContext context,
+  Map<String, dynamic> course,
+) {
+  final String status = course['status'] as String? ?? 'planned';
 
   return Card(
     margin: const EdgeInsets.only(bottom: 12),
     child: ListTile(
       leading: buildStatusIcon(status),
       title: Text(
-        course['title'],
+        course['title'] as String? ?? 'Tanpa judul',
         style: const TextStyle(
           fontWeight: FontWeight.bold,
         ),
       ),
       subtitle: Text(
-        '${course['code']} • ${course['credits']} SKS',
+        '${course['code'] ?? '-'} • ${course['credits'] ?? 0} SKS',
       ),
-      trailing: Text(
-        status,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(status),
+          IconButton(
+            tooltip: 'Hapus mata kuliah',
+            icon: const Icon(
+              Icons.delete_outline,
+              color: Colors.red,
+            ),
+            onPressed: () async {
+              final id = course['id'];
+
+              if (id == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Mata kuliah ini belum memiliki ID untuk DELETE API.',
+                    ),
+                  ),
+                );
+                return;
+              }
+
+              await _confirmDeleteCourse(
+                context,
+                id is int ? id : int.parse(id.toString()),
+                course['title'] as String? ?? 'Mata kuliah',
+              );
+            },
+          ),
+        ],
       ),
     ),
   );
+}
+
+Future<void> _confirmDeleteCourse(
+  BuildContext context,
+  int id,
+  String title,
+) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) {
+      return AlertDialog(
+        title: const Text('Hapus Mata Kuliah?'),
+        content: Text('Yakin ingin menghapus "$title"?'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext, false);
+            },
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(dialogContext, true);
+            },
+            child: const Text('Hapus'),
+          ),
+        ],
+      );
+    },
+  );
+
+  if (confirmed != true || !context.mounted) {
+    return;
+  }
+
+  try {
+    await context.read<CourseProvider>().deleteCourse(id);
+
+    if (!context.mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$title berhasil dihapus.'),
+      ),
+    );
+  } catch (e) {
+    if (!context.mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Gagal menghapus mata kuliah: $e'),
+      ),
+    );
+  }
 }
 
 
@@ -177,7 +268,7 @@ class CompactLayout extends StatelessWidget {
 
         ...student['courses']
             .map<Widget>(
-              (course) => buildCourseCard(course),
+              (course) => buildCourseCard(context, course),
             )
             .toList(),
 
@@ -248,7 +339,7 @@ class MediumLayout extends StatelessWidget {
 
         ...student['courses']
             .map<Widget>(
-              (course) => buildCourseCard(course),
+              (course) => buildCourseCard(context, course),
             )
             .toList(),
       ],
@@ -283,8 +374,9 @@ class ExpandedLayout extends StatelessWidget {
       itemCount: student['courses'].length,
       itemBuilder: (context, index) {
         return buildCourseCard(
-          student['courses'][index],
-        );
+  context,
+  student['courses'][index],
+);
       },
     );
   }

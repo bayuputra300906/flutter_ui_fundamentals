@@ -8,6 +8,8 @@ import 'providers/course_provider.dart';
 import 'repositories/course_repository.dart';
 import 'screens/navigation_page.dart';
 import 'services/course_api_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'config/supabase_config.dart';
 // ============================================================
 // LOAD STUDENT DATA
 // ============================================================
@@ -498,23 +500,32 @@ class MyApp extends StatelessWidget {
 // MAIN
 // ============================================================
 
-void main() {
-  // Pengujian REST API untuk Tahap 2.
+Future<void> main() async {
+  // Menyiapkan Flutter sebelum inisialisasi layanan.
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Menginisialisasi Supabase sebelum runApp().
+  await Supabase.initialize(
+  url: SupabaseConfig.supabaseUrl,
+  publishableKey: SupabaseConfig.supabaseAnonKey,
+);
+
+  debugPrint('=== SUPABASE BERHASIL DIINISIALISASI ===');
+
+  // Pengujian REST API yang sudah ada tetap dipertahankan.
   debugPrint('=== MULAI PENGUJIAN REST API ===');
 
-  () async {
-    try {
-      final data = await CourseApiService(apiUrl).getCourses();
+  try {
+    final data = await CourseApiService(apiUrl).getCourses();
 
-      debugPrint('REST API berhasil diuji.');
-      debugPrint('Jumlah data diterima: ${data.length}');
-    } catch (error, stackTrace) {
-      debugPrint('REST API gagal: $error');
-      debugPrint('$stackTrace');
-    }
-  }();
+    debugPrint('REST API berhasil diuji.');
+    debugPrint('Jumlah data diterima: ${data.length}');
+  } catch (error, stackTrace) {
+    debugPrint('REST API gagal: $error');
+    debugPrint('$stackTrace');
+  }
 
-
+  // Menjalankan aplikasi dengan provider yang sudah ada.
   runApp(
     MultiProvider(
       providers: [
@@ -522,12 +533,12 @@ void main() {
           create: (context) => CourseState(),
         ),
         ChangeNotifierProvider(
-  create: (context) => CourseProvider(
-    CourseRepository(
-      CourseApiService(apiUrl),
-    ),
-  )..loadCourses(),
-),
+          create: (context) => CourseProvider(
+            CourseRepository(
+              CourseApiService(apiUrl),
+            ),
+          )..loadCourses(),
+        ),
       ],
       child: const MyApp(),
     ),

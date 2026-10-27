@@ -7,6 +7,7 @@ import 'providers/course_state.dart';
 import 'providers/course_provider.dart';
 import 'repositories/course_repository.dart';
 import 'services/course_service.dart';
+import 'screens/navigation_page.dart';
 // ============================================================
 // LOAD STUDENT DATA
 // ============================================================
@@ -277,7 +278,7 @@ class ExpandedLayout extends StatelessWidget {
         crossAxisCount: 3,
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
-        childAspectRatio: 1.5,
+        childAspectRatio: 2.2,
       ),
       itemCount: student['courses'].length,
       itemBuilder: (context, index) {
@@ -383,7 +384,6 @@ class _DashboardPageState
 // ============================================================
 // MY APP
 // ============================================================
-
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -391,22 +391,17 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-
       title: 'Course Explorer',
-
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.blue,
-        ),
-        useMaterial3: true,
-      ),
-
-     home: const ProviderContextErrorExample(),
+  colorScheme: ColorScheme.fromSeed(
+    seedColor: Colors.blue,
+  ),
+  useMaterial3: true,
+),
+      home: const NavigationPage(),
     );
   }
 }
-
-
 // ============================================================
 // MAIN
 // ============================================================
@@ -490,38 +485,4 @@ class _LocalStateExampleState extends State<LocalStateExample> {
       ),
     );
   }
-}
-class CaseBState extends ChangeNotifier {
-  int counter = 0;
-
-  void increment() {
-    counter++;
-    notifyListeners();
-  }
-}
-
-class ProviderContextErrorExample extends StatelessWidget {
-  const ProviderContextErrorExample({super.key});
-
-  @override
-Widget build(BuildContext context) {
-  // Sengaja membaca Provider dari context yang salah.
-  final state = context.watch<CaseBState>();
-
-  return ChangeNotifierProvider(
-    create: (_) => CaseBState(),
-    child: Builder(
-      builder: (context) {
-        return Scaffold(
-          appBar: AppBar(
-            title: const Text('Kasus B - Provider Error'),
-          ),
-          body: Center(
-            child: Text('Jumlah klik: ${state.counter}'),
-          ),
-        );
-      },
-    ),
-  );
-}
 }

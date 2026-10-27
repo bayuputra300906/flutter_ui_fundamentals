@@ -25,22 +25,30 @@ class CourseService {
         .toList();
   }
 
-  // Fungsi baru: menguji REST API menggunakan HTTP GET.
-  Future<List<dynamic>> fetchCourses() async {
-    debugPrint('=== MULAI REST API ===');
+// Fungsi untuk menguji REST API menggunakan HTTP GET.
+Future<List<Course>> fetchCourses() async {
+  debugPrint('=== MULAI REST API ===');
 
-    final response = await http.get(Uri.parse(apiUrl));
+  final response = await http.get(Uri.parse(apiUrl));
 
-    debugPrint('HTTP Status Code: ${response.statusCode}');
+  debugPrint('HTTP Status Code: ${response.statusCode}');
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body) as List<dynamic>;
+  if (response.statusCode == 200) {
+    final data = jsonDecode(response.body) as List<dynamic>;
 
-      debugPrint('Jumlah item: ${data.length}');
+    final courses = data
+        .map(
+          (item) => Course.fromJson(
+            item as Map<String, dynamic>,
+          ),
+        )
+        .toList();
 
-      return data;
-    }
+    debugPrint('Jumlah item: ${courses.length}');
 
-    throw Exception('HTTP ${response.statusCode}');
+    return courses;
   }
+
+  throw Exception('HTTP ${response.statusCode}');
+}
 }

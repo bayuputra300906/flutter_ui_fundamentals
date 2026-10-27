@@ -5,6 +5,7 @@ import 'detail_page.dart';
 import '../widgets/course_menu_item.dart';
 import 'package:provider/provider.dart';
 import '../providers/course_provider.dart';
+import '../widgets/error_view.dart';
 // ============================================================
 // HOME PAGE - COURSE EXPLORER
 // ============================================================
@@ -150,16 +151,23 @@ void initState() {
 Consumer<CourseProvider>(
   builder: (context, provider, child) {
     if (provider.isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
-    }
+  return const Center(
+    child: CircularProgressIndicator(),
+  );
+}
 
-    if (provider.error != null) {
-      return Text(
-        'Gagal memuat mata kuliah: ${provider.error}',
-      );
-    }
+if (provider.error != null) {
+  return ErrorView(
+    message: provider.error!,
+    onRetry: provider.loadCourses,
+  );
+}
+
+if (provider.courses.isEmpty) {
+  return const Center(
+    child: Text('Data course belum tersedia'),
+  );
+}
 
     final courses = provider.courses;
 

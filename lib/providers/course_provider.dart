@@ -13,7 +13,7 @@ class CourseProvider extends ChangeNotifier {
   bool isSaving = false;
   String? error;
 
-  Future<void> createCourse(Course course) async {
+ Future<void> createCourse(Course course) async {
   if (isSaving) return;
 
   isSaving = true;
@@ -21,10 +21,10 @@ class CourseProvider extends ChangeNotifier {
   notifyListeners();
 
   try {
-    await repository.createCourse(course);
+    final createdCourse = await repository.createCourse(course);
 
-    // Muat ulang daftar mata kuliah.
-    await loadCourses();
+    // Tambahkan hasil POST ke daftar saat ini.
+    courses = [...courses, createdCourse];
   } catch (e) {
     error = e.toString();
     rethrow;

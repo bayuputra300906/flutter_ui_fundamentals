@@ -1,30 +1,28 @@
 import '../models/course.dart';
-import '../services/course_api_service.dart';
+import '../services/course_data_source.dart';
 
 class CourseRepository {
-  final CourseApiService service;
+  final CourseDataSource dataSource;
 
-  CourseRepository(this.service);
+  CourseRepository(this.dataSource);
 
-  // Digunakan untuk menampilkan lima mata kuliah lokal
+  // Mengambil daftar mata kuliah
   Future<List<Course>> getCourses() {
-    return service.loadLocalCourses();
+    return dataSource.getCourses();
   }
 
-  // Digunakan jika ingin mengambil data dari REST API
-  Future<List<Course>> getCoursesFromApi() {
-    return service.getCourses();
-  }
-
-  // Membuat mata kuliah baru
+  // Menambahkan mata kuliah
   Future<Course> createCourse(Course course) {
-    return service.createCourse(course);
+    return dataSource.createCourse(course);
   }
-// Memperbarui mata kuliah melalui repository
+
+  // Memperbarui mata kuliah
   Future<void> updateCourse(int id, Course course) {
-    return service.updateCourse(id, course);
+    return dataSource.updateCourse(id, course);
   }
-Future<void> deleteCourse(int id) {
-  return service.deleteCourse(id);
-}
+
+  // Menghapus mata kuliah
+  Future<void> deleteCourse(int id) {
+    return dataSource.deleteCourse(id);
+  }
 }

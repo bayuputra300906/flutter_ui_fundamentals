@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../models/course.dart';
+import '../providers/course_provider.dart';
 
 class AddCoursePage extends StatefulWidget {
   const AddCoursePage({super.key});
@@ -15,6 +19,7 @@ class _AddCoursePageState extends State<AddCoursePage> {
   final _creditsController = TextEditingController();
 
   String _status = 'planned';
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -22,6 +27,63 @@ class _AddCoursePageState extends State<AddCoursePage> {
     _titleController.dispose();
     _creditsController.dispose();
     super.dispose();
+  }
+
+  Future<void> _saveCourse() async {
+    // Validasi formulir terlebih dahulu.
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    final code = _codeController.text.trim();
+    final title = _titleController.text.trim();
+    final credits = int.tryParse(_creditsController.text.trim());
+
+    if (credits == null) {
+      return;
+    }
+
+    // Membuat objek mata kuliah dari data formulir.
+    final course = Course(
+      id: null,
+      code: code,
+      title: title,
+      credits: credits,
+      status: _status,
+    );
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      // Mengirim data melalui CourseProvider -> Repository -> API.
+      await context.read<CourseProvider>().createCourse(course);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Mata kuliah berhasil dikirim melalui POST.'),
+        ),
+      );
+
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal menambahkan mata kuliah: $e'),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
   }
 
   @override
@@ -77,8 +139,10 @@ class _AddCoursePageState extends State<AddCoursePage> {
                     return 'SKS wajib diisi';
                   }
 
-                  if (int.tryParse(value.trim()) == null) {
-                    return 'SKS harus berupa angka';
+                  final credits = int.tryParse(value.trim());
+
+                  if (credits == null || credits <= 0) {
+                    return 'SKS harus berupa angka positif';
                   }
 
                   return null;
@@ -115,21 +179,19 @@ class _AddCoursePageState extends State<AddCoursePage> {
               ),
               const SizedBox(height: 24),
               ElevatedButton.icon(
-                onPressed: () {
-                  if (!_formKey.currentState!.validate()) {
-                    return;
-                  }
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Validasi berhasil. Fitur POST belum dihubungkan.',
-                      ),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.save),
-                label: const Text('Simpan'),
+                onPressed: _isSubmitting ? null : _saveCourse,
+                icon: _isSubmitting
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Icon(Icons.save),
+                label: Text(
+                  _isSubmitting ? 'Mengirim...' : 'Simpan',
+                ),
               ),
             ],
           ),

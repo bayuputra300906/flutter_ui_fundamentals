@@ -4,18 +4,20 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
+import 'course_data_source.dart';
 
 import '../models/course.dart';
 
 const String apiUrl = 'https://jsonplaceholder.typicode.com/posts';
 
-class CourseApiService {
+class CourseApiService implements CourseDataSource {
   CourseApiService(this.baseUrl);
 
   final String baseUrl;
 
-  // Mengambil data dari REST API
-  Future<List<Course>> getCourses() async {
+ // Mengambil data dari REST API
+@override
+Future<List<Course>> getCourses() async {
     debugPrint('=== MULAI REST API ===');
 
     final response = await http.get(Uri.parse(baseUrl));
@@ -67,7 +69,8 @@ class CourseApiService {
     return courses;
   }
  // Membuat mata kuliah baru melalui HTTP POST
-  Future<Course> createCourse(Course course) async {
+  @override
+Future<Course> createCourse(Course course) async {
     debugPrint('=== MEMBUAT COURSE BARU ===');
 
     final response = await http.post(
@@ -92,7 +95,8 @@ class CourseApiService {
   }
 
   // Memperbarui mata kuliah melalui HTTP PUT
-  Future<void> updateCourse(int id, Course course) async {
+@override
+Future<void> updateCourse(int id, Course course) async {
     debugPrint('=== MEMPERBARUI COURSE ===');
 
     final response = await http.put(
@@ -111,7 +115,8 @@ class CourseApiService {
     }
   }
 
-  // Menghapus mata kuliah melalui HTTP DELETE
+ // Menghapus mata kuliah melalui HTTP DELETE
+@override
 Future<void> deleteCourse(int id) async {
   debugPrint('=== MENGHAPUS COURSE ===');
 

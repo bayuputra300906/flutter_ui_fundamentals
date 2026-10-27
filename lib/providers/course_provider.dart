@@ -10,7 +10,29 @@ class CourseProvider extends ChangeNotifier {
 
   List<Course> courses = [];
   bool isLoading = false;
+  bool isSaving = false;
   String? error;
+
+  Future<void> createCourse(Course course) async {
+  if (isSaving) return;
+
+  isSaving = true;
+  error = null;
+  notifyListeners();
+
+  try {
+    await repository.createCourse(course);
+
+    // Muat ulang daftar mata kuliah.
+    await loadCourses();
+  } catch (e) {
+    error = e.toString();
+    rethrow;
+  } finally {
+    isSaving = false;
+    notifyListeners();
+  }
+}
 
   Future<void> loadCourses() async {
     isLoading = true;

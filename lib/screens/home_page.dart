@@ -6,6 +6,7 @@ import '../widgets/course_menu_item.dart';
 import 'package:provider/provider.dart';
 import '../providers/course_provider.dart';
 import '../widgets/error_view.dart';
+import 'add_course_page.dart';
 // ============================================================
 // HOME PAGE - COURSE EXPLORER
 // ============================================================
@@ -54,22 +55,35 @@ void initState() {
       // APP BAR
       // ======================================================
 
-      appBar: AppBar(
-        title: const Text('matakuliah'),
-        centerTitle: false,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: CircleAvatar(
-              backgroundColor: Colors.white,
-              child: Icon(
-                Icons.person,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ),
+     appBar: AppBar(
+  title: const Text('matakuliah'),
+  centerTitle: false,
+  actions: [
+    IconButton(
+      icon: const Icon(Icons.add),
+      tooltip: 'Tambah mata kuliah',
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const AddCoursePage(),
           ),
-        ],
+        );
+      },
+    ),
+
+    Padding(
+      padding: const EdgeInsets.only(right: 16),
+      child: CircleAvatar(
+        backgroundColor: Colors.white,
+        child: Icon(
+          Icons.person,
+          color: Theme.of(context).colorScheme.primary,
+        ),
       ),
+    ),
+  ],
+),
 
       // ======================================================
       // BODY

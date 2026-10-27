@@ -15,4 +15,9 @@ class CourseRepository {
   Future<List<Course>> getCoursesFromApi() {
     return service.getCourses();
   }
+
+  // Membuat mata kuliah baru
+  Future<Course> createCourse(Course course) {
+    return service.createCourse(course);
+  }
 }

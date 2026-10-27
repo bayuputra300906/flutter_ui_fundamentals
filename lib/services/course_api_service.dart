@@ -65,4 +65,28 @@ class CourseApiService {
 
     return courses;
   }
+ // Membuat mata kuliah baru melalui HTTP POST
+  Future<Course> createCourse(Course course) async {
+    debugPrint('=== MEMBUAT COURSE BARU ===');
+
+    final response = await http.post(
+      Uri.parse(baseUrl),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(course.toJson()),
+    );
+
+    debugPrint('HTTP Status Code: ${response.statusCode}');
+
+    if (response.statusCode == 200 ||
+        response.statusCode == 201) {
+      final data =
+          jsonDecode(response.body) as Map<String, dynamic>;
+
+      return Course.fromJson(data);
+    }
+
+    throw Exception('Gagal membuat course');
+  }
 }

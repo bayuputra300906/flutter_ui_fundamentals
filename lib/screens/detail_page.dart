@@ -3,6 +3,8 @@ import 'feedback_page.dart';
 import 'material_detail_page.dart';
 import 'package:provider/provider.dart';
 import '../providers/course_state.dart';
+import '../models/course.dart' as model;
+import 'edit_course_page.dart';
 
 class DetailPage extends StatelessWidget {
   final Map<String, dynamic> course;
@@ -798,6 +800,62 @@ final totalFavorites = favorites.length;
                 label: const Text('Berikan Feedback'),
               ),
             ),
+            
+            // TOMBOL EDIT MATA KULIAH
+SizedBox(
+  width: double.infinity,
+  child: FilledButton.icon(
+    onPressed: () async {
+      final int? courseId = course['id'] as int?;
+
+      if (courseId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('ID mata kuliah tidak ditemukan.'),
+          ),
+        );
+        return;
+      }
+
+     final String rawStatus = course['status']?.toString() ?? 'planned';
+
+final String normalizedStatus = {
+  'Selesai': 'done',
+  'Aktif': 'active',
+  'Rencana': 'planned',
+}[rawStatus] ?? rawStatus;
+
+final selectedCourse = model.Course(
+  id: courseId,
+  code: code,
+  title: title,
+  credits: int.tryParse(credits) ?? 0,
+  status: normalizedStatus,
+);
+
+      await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => EditCoursePage(
+            course: selectedCourse,
+          ),
+        ),
+      );
+    },
+    icon: const Icon(Icons.edit),
+    label: const Text('Edit Mata Kuliah'),
+  ),
+),
+
+// KODE LAMA — TETAP DIPERTAHANKAN
+const SizedBox(height: 16),
+const Center(
+  child: Text(
+    'Course Explorer • Pembelajaran Flutter',
+    textAlign: TextAlign.center,
+    style: TextStyle(fontSize: 12),
+  ),
+),
             const SizedBox(height: 16),
             const Center(
               child: Text(

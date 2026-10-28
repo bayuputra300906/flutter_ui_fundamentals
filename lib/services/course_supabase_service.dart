@@ -36,9 +36,19 @@ Future<Course> createCourse(Course course) async {
 }
 
   @override
-  Future<void> updateCourse(int id, Course course) {
-    throw UnimplementedError();
+Future<void> updateCourse(int id, Course course) async {
+  final result = await supabase
+      .from('courses')
+      .update(course.toJson())
+      .eq('id', id)
+      .select();
+
+  if (result.isEmpty) {
+    throw Exception(
+      'Tidak ada data yang diperbarui. Periksa ID mata kuliah dan izin UPDATE di Supabase.',
+    );
   }
+}
 
   @override
   Future<void> deleteCourse(int id) {

@@ -289,6 +289,7 @@ if (presentation == null) {
         }[course.status] ?? course.status;
 
         final courseMap = {
+          'id': course.id,
           'code': course.code,
           'title': course.title,
           'credits': course.credits,

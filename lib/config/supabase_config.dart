@@ -1,4 +1,7 @@
 class SupabaseConfig {
-  static const String supabaseUrl = 'ISI_PROJECT_URL';
-  static const String supabaseAnonKey = 'ISI_PUBLISHABLE_ATAU_ANON_KEY';
+  static const String supabaseUrl =
+      'https://gqxtalbvdnodcscduylt.supabase.co';
+
+  static const String supabaseAnonKey =
+      'sb_publishable_soCz7g_Sz5Z2Ok1gMMhTqQ_5YVLFHSy';
 }

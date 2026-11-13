@@ -12,7 +12,9 @@ import 'config/supabase_config.dart';
 import 'services/course_supabase_service.dart';
 import 'providers/course_state.dart';
 import 'pages/login_page.dart';
+import 'pages/home_page.dart';
 import 'services/auth_service.dart';
+import 'app_keys.dart';
 // ============================================================
 // LOAD STUDENT DATA
 // ============================================================
@@ -495,7 +497,11 @@ class MyApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const LoginPage(),
+      navigatorKey: navigatorKey,
+      scaffoldMessengerKey: messengerKey,
+      home: AuthService.instance.isLoggedIn
+          ? const HomePage()
+          : const LoginPage(),
     );
   }
 }

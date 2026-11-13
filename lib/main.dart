@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'providers/course_provider.dart';
 import 'repositories/course_repository.dart';
-import 'screens/navigation_page.dart';
 import 'services/course_api_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -510,7 +509,7 @@ class MyApp extends StatelessWidget {
           elevation: 0,
           centerTitle: false,
         ),
-        cardTheme: CardTheme(
+        cardTheme: CardThemeData(
           color: Colors.white,
           elevation: 2,
           shape: RoundedRectangleBorder(

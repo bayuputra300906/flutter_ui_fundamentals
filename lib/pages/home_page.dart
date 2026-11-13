@@ -18,16 +18,15 @@ class _HomePageState extends State<HomePage> {
   late Future<List<Map<String, dynamic>>> _kosFuture;
   final KosService _kosService = KosService();
 
-  // Sky Blue theme colors
   static const Color skyBlue = Color(0xFF0284C7);
   static const Color skyBlueLight = Color(0xFFBAE6FD);
   static const Color skyBlueSurface = Color(0xFFF0F9FF);
+  static const Color skyBlueDark = Color(0xFF0369A1);
 
   @override
   void initState() {
     super.initState();
     _refreshData();
-
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await NotificationService.instance.init();
       await NotificationService.instance.setupInteractedMessage();
@@ -50,213 +49,873 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // Fungsi untuk mengganti role akun secara cepat (Pengujian Seeker vs Owner)
-  Future<void> _toggleRole(UserProfile currentProfile) async {
-    final nextRole = currentProfile.isOwner ? 'seeker' : 'owner';
-    await ProfileService().updateRole(nextRole);
+  Future<void> _toggleRole(UserProfile p) async {
+    final next = p.isOwner ? 'seeker' : 'owner';
+    await ProfileService().updateRole(next);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Role berhasil diubah menjadi: ${nextRole == "owner" ? "Pemilik Kos (owner)" : "Pencari Kos (seeker)"}',
-        ),
-        backgroundColor: skyBlue,
-      ),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text('Role diubah ke: ${next == "owner" ? "Pemilik Kos" : "Pencari Kos"}'),
+      backgroundColor: skyBlue,
+    ));
     _refreshData();
   }
 
-  // Kirim broadcast push notification promosi kos
-  void _sendPromotionNotification(String kosTitle, int price) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          '🏠 KosFinder Broadcast:\nKos baru tersedia di sekitar kampus!\n$kosTitle • Rp $price/bulan',
-          style: const TextStyle(fontWeight: FontWeight.bold),
+  void _sendPromotionNotification(String name, int price) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(
+        '🏠 KosFinder: Kos baru tersedia!\n$name • Rp $price/bulan',
+        style: const TextStyle(fontWeight: FontWeight.bold),
+      ),
+      backgroundColor: skyBlue,
+      duration: const Duration(seconds: 4),
+      action: SnackBarAction(label: 'OK', textColor: Colors.amber, onPressed: () {}),
+    ));
+  }
+
+  // =========================================================
+  // Widget Foto (aman: tampilkan placeholder jika URL kosong)
+  // =========================================================
+  Widget _buildPhoto(String? url, {double height = 180, String label = 'Foto'}) {
+    if (url == null || url.trim().isEmpty) {
+      return Container(
+        height: height,
+        decoration: BoxDecoration(
+          color: const Color(0xFFE0F2FE),
+          borderRadius: BorderRadius.circular(10),
         ),
-        backgroundColor: skyBlue,
-        duration: const Duration(seconds: 4),
-        action: SnackBarAction(
-          label: 'OK',
-          textColor: Colors.amber,
-          onPressed: () {},
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.image_not_supported_outlined, size: 36, color: Colors.grey.shade400),
+              const SizedBox(height: 6),
+              Text(
+                'Belum ada $label',
+                style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: Image.network(
+        url,
+        height: height,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        loadingBuilder: (ctx, child, progress) {
+          if (progress == null) return child;
+          return Container(
+            height: height,
+            color: const Color(0xFFE0F2FE),
+            child: const Center(child: CircularProgressIndicator()),
+          );
+        },
+        errorBuilder: (ctx, _, __) => Container(
+          height: height,
+          decoration: BoxDecoration(
+            color: const Color(0xFFE0F2FE),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.broken_image_outlined, size: 36, color: Colors.grey.shade400),
+                const SizedBox(height: 6),
+                Text('Gagal memuat $label',
+                    style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 
-  // Dialog Tambah Kos untuk Pemilik Kos (Owner)
+  // =========================================================
+  // Modal Detail Kos (Foto + Info Lengkap)
+  // =========================================================
+  void _showKosDetail(Map<String, dynamic> kos, UserProfile p) {
+    final isPromoted = kos['is_promoted'] == true;
+    final kmDalam = (kos['kamar_mandi'] ?? 'luar') == 'dalam';
+    final price = kos['price'] ?? 0;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.85,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (_, scrollCtrl) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: ListView(
+            controller: scrollCtrl,
+            padding: const EdgeInsets.all(0),
+            children: [
+              // Drag handle
+              Center(
+                child: Container(
+                  margin: const EdgeInsets.only(top: 12),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // ---- Header nama & badge ----
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        kos['name'] ?? 'Kos',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    if (isPromoted)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF3C7),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: const Color(0xFFFBBF24)),
+                        ),
+                        child: const Text('🔥 PROMO',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                                color: Color(0xFFB45309))),
+                      ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 6),
+
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    const Icon(Icons.location_on, size: 14, color: skyBlue),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        kos['address'] ?? '-',
+                        style: TextStyle(
+                            color: Colors.grey.shade600, fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // ---- FOTO KOS (eksterior / tampak depan) ----
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _sectionLabel('📷 Foto Kos (Tampak Luar)'),
+                    const SizedBox(height: 8),
+                    _buildPhoto(kos['foto_kos'], height: 200, label: 'Foto Kos'),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // ---- FOTO KAMAR ----
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _sectionLabel('🛏 Foto Kamar'),
+                    const SizedBox(height: 8),
+                    _buildPhoto(kos['foto_kamar'], height: 200, label: 'Foto Kamar'),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // ---- INFO FASILITAS ----
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _sectionLabel('🏷 Informasi Fasilitas'),
+                    const SizedBox(height: 10),
+                    // Grid fasilitas
+                    Row(
+                      children: [
+                        _fasilitasChip(
+                          icon: kmDalam ? Icons.bathroom : Icons.door_sliding_outlined,
+                          label: 'KM ${kmDalam ? "Dalam" : "Luar"}',
+                          color: kmDalam ? skyBlue : const Color(0xFF7C3AED),
+                        ),
+                        const SizedBox(width: 8),
+                        _fasilitasChip(
+                          icon: Icons.payments_outlined,
+                          label: 'Rp $price/bln',
+                          color: const Color(0xFF059669),
+                        ),
+                        const SizedBox(width: 8),
+                        if (isPromoted)
+                          _fasilitasChip(
+                            icon: Icons.campaign,
+                            label: 'Promo',
+                            color: const Color(0xFFD97706),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              // ---- DESKRIPSI ----
+              if ((kos['deskripsi'] ?? '').toString().isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _sectionLabel('📝 Deskripsi'),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: skyBlueSurface,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: skyBlueLight),
+                        ),
+                        child: Text(
+                          kos['deskripsi'],
+                          style: TextStyle(
+                              color: Colors.grey.shade800, fontSize: 13, height: 1.5),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
+              const SizedBox(height: 24),
+
+              // ---- TOMBOL AKSI ----
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: p.isOwner
+                    ? Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: skyBlue,
+                                side: const BorderSide(color: skyBlue),
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                              ),
+                              onPressed: () {
+                                Navigator.pop(ctx);
+                                _showEditKosDialog(kos);
+                              },
+                              icon: const Icon(Icons.edit, size: 18),
+                              label: const Text('Edit Kos'),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: FilledButton.icon(
+                              style: FilledButton.styleFrom(
+                                backgroundColor: skyBlue,
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                              ),
+                              onPressed: () {
+                                Navigator.pop(ctx);
+                                _sendPromotionNotification(
+                                    kos['name'] ?? 'Kos', price);
+                              },
+                              icon: const Icon(Icons.campaign, size: 18),
+                              label: const Text('Promosikan'),
+                            ),
+                          ),
+                        ],
+                      )
+                    : SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: skyBlue,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content:
+                                  Text('Menghubungi pengelola ${kos['name']}...'),
+                              backgroundColor: skyBlue,
+                            ));
+                          },
+                          icon: const Icon(Icons.phone, size: 18),
+                          label: const Text('Hubungi Pemilik Kos',
+                              style: TextStyle(fontSize: 15)),
+                        ),
+                      ),
+              ),
+
+              const SizedBox(height: 32),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _sectionLabel(String text) => Text(
+        text,
+        style: const TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 14,
+          color: skyBlueDark,
+        ),
+      );
+
+  Widget _fasilitasChip({
+    required IconData icon,
+    required String label,
+    required Color color,
+  }) =>
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: color.withAlpha(26),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color.withAlpha(80)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 5),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 12, color: color, fontWeight: FontWeight.w600)),
+          ],
+        ),
+      );
+
+  // =========================================================
+  // Dialog Tambah Kos (dengan foto & kamar mandi)
+  // =========================================================
   void _showAddKosDialog(UserProfile profile) {
     final nameC = TextEditingController();
     final addressC = TextEditingController();
     final priceC = TextEditingController();
+    final fotoKosC = TextEditingController();
+    final fotoKamarC = TextEditingController();
+    final deskripsiC = TextEditingController();
+    String kamarMandi = 'dalam';
     bool sendPromo = true;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 24,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-              ),
-              child: ListView(
-                shrinkWrap: true,
-                children: [
-                  Row(
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.9,
+        maxChildSize: 0.95,
+        minChildSize: 0.5,
+        builder: (_, scrollCtrl) => StatefulBuilder(
+          builder: (context, setModalState) => Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: ListView(
+              controller: scrollCtrl,
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2)),
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // Header
+                const Row(
+                  children: [
+                    Icon(Icons.add_home, color: skyBlue, size: 26),
+                    SizedBox(width: 10),
+                    Text('Tambah & Promosikan Kos',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // Nama
+                _buildFormField(
+                  controller: nameC,
+                  label: 'Nama Kos',
+                  hint: 'Contoh: Kos Melati Kampus Undiksha',
+                  icon: Icons.business,
+                ),
+                const SizedBox(height: 12),
+
+                // Alamat
+                _buildFormField(
+                  controller: addressC,
+                  label: 'Alamat Lengkap',
+                  hint: 'Contoh: Jl. Udayana No. 12, Singaraja',
+                  icon: Icons.location_on,
+                ),
+                const SizedBox(height: 12),
+
+                // Harga
+                _buildFormField(
+                  controller: priceC,
+                  label: 'Harga Sewa / Bulan (Rp)',
+                  hint: 'Contoh: 750000',
+                  icon: Icons.payments,
+                  keyboardType: TextInputType.number,
+                ),
+                const SizedBox(height: 12),
+
+                // Deskripsi
+                _buildFormField(
+                  controller: deskripsiC,
+                  label: 'Deskripsi Kos',
+                  hint:
+                      'Fasilitas, kondisi, keunggulan kos Anda...',
+                  icon: Icons.notes,
+                  maxLines: 3,
+                ),
+                const SizedBox(height: 16),
+
+                // Kamar Mandi
+                const Text('🚿 Kamar Mandi',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 13)),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _kmOption(
+                        label: 'Dalam Kamar',
+                        icon: Icons.bathroom,
+                        selected: kamarMandi == 'dalam',
+                        onTap: () =>
+                            setModalState(() => kamarMandi = 'dalam'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _kmOption(
+                        label: 'Di Luar (Shared)',
+                        icon: Icons.door_sliding_outlined,
+                        selected: kamarMandi == 'luar',
+                        onTap: () =>
+                            setModalState(() => kamarMandi = 'luar'),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Foto Kos URL
+                const Text('📷 Foto Kos (URL Gambar)',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 13)),
+                const SizedBox(height: 4),
+                Text(
+                  'Paste link foto dari Google Drive, Imgur, dll.\nContoh: https://i.imgur.com/xxx.jpg',
+                  style: TextStyle(
+                      fontSize: 11, color: Colors.grey.shade600),
+                ),
+                const SizedBox(height: 8),
+                _buildFormField(
+                  controller: fotoKosC,
+                  label: 'URL Foto Tampak Luar Kos',
+                  hint: 'https://i.imgur.com/foto-kos.jpg',
+                  icon: Icons.add_photo_alternate,
+                  keyboardType: TextInputType.url,
+                ),
+                const SizedBox(height: 8),
+
+                // Preview foto kos
+                StatefulBuilder(
+                  builder: (_, setPreview) => Column(
                     children: [
-                      const Icon(Icons.add_home, color: skyBlue, size: 28),
-                      const SizedBox(width: 10),
-                      Text(
-                        'Tambah & Promosikan Kos',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                      if (fotoKosC.text.isNotEmpty)
+                        _buildPhoto(fotoKosC.text, height: 140, label: 'Foto Kos'),
+                      const SizedBox(height: 4),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton.icon(
+                          onPressed: () => setPreview(() {}),
+                          icon: const Icon(Icons.visibility, size: 16),
+                          label: const Text('Preview', style: TextStyle(fontSize: 12)),
+                          style: TextButton.styleFrom(foregroundColor: skyBlue),
+                        ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: nameC,
-                    decoration: const InputDecoration(
-                      labelText: 'Nama Kos',
-                      hintText: 'Contoh: Kos Melati Kampus Undiksha',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.business),
-                    ),
+                ),
+
+                const SizedBox(height: 10),
+
+                // Foto Kamar URL
+                const Text('🛏 Foto Kamar (URL Gambar)',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 13)),
+                const SizedBox(height: 8),
+                _buildFormField(
+                  controller: fotoKamarC,
+                  label: 'URL Foto Bagian Dalam Kamar',
+                  hint: 'https://i.imgur.com/foto-kamar.jpg',
+                  icon: Icons.bed,
+                  keyboardType: TextInputType.url,
+                ),
+                const SizedBox(height: 8),
+
+                // Preview foto kamar
+                StatefulBuilder(
+                  builder: (_, setPreview) => Column(
+                    children: [
+                      if (fotoKamarC.text.isNotEmpty)
+                        _buildPhoto(fotoKamarC.text,
+                            height: 140, label: 'Foto Kamar'),
+                      const SizedBox(height: 4),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton.icon(
+                          onPressed: () => setPreview(() {}),
+                          icon: const Icon(Icons.visibility, size: 16),
+                          label: const Text('Preview', style: TextStyle(fontSize: 12)),
+                          style: TextButton.styleFrom(foregroundColor: skyBlue),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: addressC,
-                    decoration: const InputDecoration(
-                      labelText: 'Alamat Kos',
-                      hintText: 'Contoh: Jl. Udayana No. 12, Singaraja',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.location_on),
-                    ),
+                ),
+
+                const SizedBox(height: 14),
+
+                // Switch Promosi
+                Container(
+                  decoration: BoxDecoration(
+                    color: skyBlueSurface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: skyBlueLight),
                   ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: priceC,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Harga Sewa / Bulan (Rp)',
-                      hintText: 'Contoh: 750000',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.payments),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  SwitchListTile(
+                  child: SwitchListTile(
                     title: const Text('Kirim Push Notification Promosi 📢'),
                     subtitle: const Text(
-                      'Pencari kos akan menerima notifikasi "Kos baru tersedia di sekitar kampus"',
+                      'Pencari kos menerima notifikasi kos baru tersedia',
+                      style: TextStyle(fontSize: 11),
                     ),
                     value: sendPromo,
                     activeTrackColor: skyBlue,
-                    onChanged: (val) => setModalState(() => sendPromo = val),
+                    onChanged: (val) =>
+                        setModalState(() => sendPromo = val),
                   ),
-                  const SizedBox(height: 16),
-                  FilledButton.icon(
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    onPressed: () async {
-                      final name = nameC.text.trim();
-                      final addr = addressC.text.trim();
-                      final price = int.tryParse(priceC.text.trim()) ?? 0;
+                ),
 
-                      if (name.isEmpty || addr.isEmpty || price <= 0) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Lengkapi form dengan valid')),
-                        );
-                        return;
-                      }
+                const SizedBox(height: 20),
 
-                      Navigator.pop(ctx);
-                      await _kosService.add(
-                        name: name,
-                        address: addr,
-                        price: price,
-                        isPromoted: sendPromo,
-                      );
-
-                      if (sendPromo) {
-                        _sendPromotionNotification(name, price);
-                      }
-
-                      _refreshData();
-                    },
-                    icon: const Icon(Icons.publish),
-                    label: const Text('Simpan & Promosikan Kos'),
+                // Tombol Simpan
+                FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: skyBlue,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
-                ],
-              ),
-            );
-          },
-        );
-      },
+                  onPressed: () async {
+                    final name = nameC.text.trim();
+                    final addr = addressC.text.trim();
+                    final price = int.tryParse(priceC.text.trim()) ?? 0;
+
+                    if (name.isEmpty || addr.isEmpty || price <= 0) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                          content: Text('Nama, alamat, dan harga wajib diisi!')));
+                      return;
+                    }
+
+                    Navigator.pop(ctx);
+                    await _kosService.add(
+                      name: name,
+                      address: addr,
+                      price: price,
+                      isPromoted: sendPromo,
+                      kamarMandi: kamarMandi,
+                      fotoKos: fotoKosC.text.trim(),
+                      fotoKamar: fotoKamarC.text.trim(),
+                      deskripsi: deskripsiC.text.trim(),
+                    );
+                    if (sendPromo) _sendPromotionNotification(name, price);
+                    _refreshData();
+                  },
+                  icon: const Icon(Icons.publish),
+                  label: const Text('Simpan & Promosikan Kos',
+                      style: TextStyle(fontSize: 15)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
-  // Dialog Edit Kos (Hanya untuk Owner)
+  // =========================================================
+  // Dialog Edit Kos (dengan foto & kamar mandi)
+  // =========================================================
   void _showEditKosDialog(Map<String, dynamic> kos) {
     final nameC = TextEditingController(text: kos['name'] ?? '');
     final addressC = TextEditingController(text: kos['address'] ?? '');
     final priceC = TextEditingController(text: (kos['price'] ?? 0).toString());
+    final fotoKosC = TextEditingController(text: kos['foto_kos'] ?? '');
+    final fotoKamarC = TextEditingController(text: kos['foto_kamar'] ?? '');
+    final deskripsiC = TextEditingController(text: kos['deskripsi'] ?? '');
+    String kamarMandi = kos['kamar_mandi'] ?? 'luar';
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Edit Informasi Kos'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameC,
-              decoration: const InputDecoration(labelText: 'Nama Kos'),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.9,
+        maxChildSize: 0.95,
+        builder: (_, scrollCtrl) => StatefulBuilder(
+          builder: (context, setModalState) => Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
-            TextField(
-              controller: addressC,
-              decoration: const InputDecoration(labelText: 'Alamat'),
+            child: ListView(
+              controller: scrollCtrl,
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2)),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                const Row(
+                  children: [
+                    Icon(Icons.edit, color: skyBlue, size: 24),
+                    SizedBox(width: 10),
+                    Text('Edit Informasi Kos',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                _buildFormField(
+                    controller: nameC, label: 'Nama Kos', icon: Icons.business),
+                const SizedBox(height: 12),
+                _buildFormField(
+                    controller: addressC,
+                    label: 'Alamat',
+                    icon: Icons.location_on),
+                const SizedBox(height: 12),
+                _buildFormField(
+                    controller: priceC,
+                    label: 'Harga (Rp)',
+                    icon: Icons.payments,
+                    keyboardType: TextInputType.number),
+                const SizedBox(height: 12),
+                _buildFormField(
+                    controller: deskripsiC,
+                    label: 'Deskripsi',
+                    icon: Icons.notes,
+                    maxLines: 3),
+                const SizedBox(height: 16),
+                const Text('🚿 Kamar Mandi',
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _kmOption(
+                        label: 'Dalam Kamar',
+                        icon: Icons.bathroom,
+                        selected: kamarMandi == 'dalam',
+                        onTap: () =>
+                            setModalState(() => kamarMandi = 'dalam'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _kmOption(
+                        label: 'Di Luar (Shared)',
+                        icon: Icons.door_sliding_outlined,
+                        selected: kamarMandi == 'luar',
+                        onTap: () =>
+                            setModalState(() => kamarMandi = 'luar'),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const Text('📷 URL Foto Kos',
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                const SizedBox(height: 8),
+                _buildFormField(
+                    controller: fotoKosC,
+                    label: 'URL Foto Tampak Luar',
+                    icon: Icons.add_photo_alternate,
+                    keyboardType: TextInputType.url),
+                const SizedBox(height: 4),
+                if (fotoKosC.text.isNotEmpty)
+                  _buildPhoto(fotoKosC.text, height: 130),
+                const SizedBox(height: 14),
+                const Text('🛏 URL Foto Kamar',
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                const SizedBox(height: 8),
+                _buildFormField(
+                    controller: fotoKamarC,
+                    label: 'URL Foto Bagian Dalam Kamar',
+                    icon: Icons.bed,
+                    keyboardType: TextInputType.url),
+                const SizedBox(height: 4),
+                if (fotoKamarC.text.isNotEmpty)
+                  _buildPhoto(fotoKamarC.text, height: 130),
+                const SizedBox(height: 20),
+                FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: skyBlue,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  onPressed: () async {
+                    Navigator.pop(ctx);
+                    await _kosService.update(kos['id'].toString(), {
+                      'name': nameC.text.trim(),
+                      'address': addressC.text.trim(),
+                      'price': int.tryParse(priceC.text.trim()) ?? kos['price'],
+                      'kamar_mandi': kamarMandi,
+                      'foto_kos': fotoKosC.text.trim(),
+                      'foto_kamar': fotoKamarC.text.trim(),
+                      'deskripsi': deskripsiC.text.trim(),
+                    });
+                    _refreshData();
+                  },
+                  icon: const Icon(Icons.save),
+                  label: const Text('Simpan Perubahan',
+                      style: TextStyle(fontSize: 15)),
+                ),
+              ],
             ),
-            TextField(
-              controller: priceC,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Harga (Rp)'),
-            ),
-          ],
+          ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Batal'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              await _kosService.update(kos['id'].toString(), {
-                'name': nameC.text.trim(),
-                'address': addressC.text.trim(),
-                'price': int.tryParse(priceC.text.trim()) ?? kos['price'],
-              });
-              _refreshData();
-            },
-            child: const Text('Simpan Perubahan'),
-          ),
-        ],
       ),
     );
   }
 
+  // Helper: TextField seragam
+  Widget _buildFormField({
+    required TextEditingController controller,
+    required String label,
+    String? hint,
+    required IconData icon,
+    TextInputType keyboardType = TextInputType.text,
+    int maxLines = 1,
+  }) =>
+      TextField(
+        controller: controller,
+        keyboardType: keyboardType,
+        maxLines: maxLines,
+        decoration: InputDecoration(
+          labelText: label,
+          hintText: hint,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: skyBlue, width: 2),
+          ),
+          prefixIcon: Icon(icon, color: skyBlue),
+          filled: true,
+          fillColor: Colors.white,
+        ),
+      );
+
+  // Helper: opsi kamar mandi
+  Widget _kmOption({
+    required String label,
+    required IconData icon,
+    required bool selected,
+    required VoidCallback onTap,
+  }) =>
+      GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+          decoration: BoxDecoration(
+            color: selected ? skyBlue : Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: selected ? skyBlue : Colors.grey.shade300,
+              width: 1.5,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: selected ? Colors.white : Colors.grey.shade600, size: 18),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: selected ? Colors.white : Colors.grey.shade700,
+                    fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+  // =========================================================
+  // BUILD UTAMA
+  // =========================================================
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<UserProfile>(
@@ -264,23 +923,18 @@ class _HomePageState extends State<HomePage> {
       builder: (context, snap) {
         if (snap.connectionState != ConnectionState.done) {
           return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
+              body: Center(child: CircularProgressIndicator()));
         }
 
-        // Karena ProfileService.getMyProfile() selalu return non-null,
-        // snap.data pasti ada. Fallback ke default owner jika terjadi hal tak terduga.
         final p = snap.data ??
             const UserProfile(
-              id: 'owner-default-bayu',
+              id: 'owner-default',
               email: 'bayuputra.owner@gmail.com',
               name: 'Gede Bayu Putra Darmawan',
               role: 'owner',
             );
 
         final myUid = AuthService.instance.currentUser?.id ?? '';
-        final roleLabel = p.isOwner ? 'Pemilik Kos' : 'Pencari Kos';
-        final roleIcon = p.isOwner ? Icons.home_work : Icons.person_search;
 
         return Scaffold(
           backgroundColor: skyBlueSurface,
@@ -288,18 +942,13 @@ class _HomePageState extends State<HomePage> {
             backgroundColor: skyBlue,
             foregroundColor: Colors.white,
             elevation: 0,
-            title: Row(
+            title: const Row(
               children: [
-                const Icon(Icons.apartment, size: 22),
-                const SizedBox(width: 8),
-                Text(
-                  'KosFinder',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
-                    color: Colors.white,
-                  ),
-                ),
+                Icon(Icons.apartment, size: 22),
+                SizedBox(width: 8),
+                Text('KosFinder',
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
               ],
             ),
             actions: [
@@ -309,10 +958,9 @@ class _HomePageState extends State<HomePage> {
                 onPressed: () => _toggleRole(p),
               ),
               IconButton(
-                tooltip: 'Logout',
-                icon: const Icon(Icons.logout),
-                onPressed: _logout,
-              ),
+                  tooltip: 'Logout',
+                  icon: const Icon(Icons.logout),
+                  onPressed: _logout),
             ],
           ),
           body: RefreshIndicator(
@@ -321,133 +969,60 @@ class _HomePageState extends State<HomePage> {
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                // =====================================================
-                // 1. Kartu Profil & Role Pengguna
-                // =====================================================
+                // ---- Kartu Profil ----
                 Card(
                   color: Colors.white,
                   elevation: 2,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
-                    side: BorderSide(
-                      color: p.isOwner ? skyBlue.withAlpha(153) : skyBlueLight,
-                      width: 1.5,
-                    ),
+                    side: const BorderSide(color: skyBlueLight, width: 1.5),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Row(
                       children: [
-                        Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 26,
-                              backgroundColor: skyBlue,
-                              child: Icon(
-                                roleIcon,
-                                color: Colors.white,
-                                size: 26,
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    p.name.isNotEmpty ? p.name : p.email.split('@').first,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  Text(
-                                    '${p.email} • ${p.role}',
-                                    style: TextStyle(
-                                      color: Colors.grey.shade600,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            // Badge role
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: skyBlue,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    p.isOwner ? Icons.badge : Icons.search,
-                                    size: 14,
-                                    color: Colors.white,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    roleLabel,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+                        CircleAvatar(
+                          radius: 26,
+                          backgroundColor: skyBlue,
+                          child: Icon(
+                            p.isOwner ? Icons.home_work : Icons.person_search,
+                            color: Colors.white,
+                            size: 24,
+                          ),
                         ),
-                        const SizedBox(height: 10),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: skyBlueSurface,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Row(
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Icon(
-                                Icons.info_outline,
-                                size: 15,
-                                color: skyBlue,
+                              Text(
+                                p.name.isNotEmpty
+                                    ? p.name
+                                    : p.email.split('@').first,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 15),
                               ),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: Text(
-                                  p.isOwner
-                                      ? 'Hak Akses: Tambah kos, edit, hapus, dan kirim promosi push notification.'
-                                      : 'Hak Akses: Lihat daftar kos dan hubungi pengelola.',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.grey.shade700,
-                                  ),
-                                ),
-                              ),
-                              TextButton(
-                                onPressed: () => _toggleRole(p),
-                                style: TextButton.styleFrom(
-                                  foregroundColor: skyBlue,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                ),
-                                child: Text(
-                                  p.isOwner ? 'Ubah ke Seeker' : 'Ubah ke Owner',
-                                  style: const TextStyle(fontSize: 11),
-                                ),
+                              Text(
+                                '${p.email} • ${p.role}',
+                                style: TextStyle(
+                                    color: Colors.grey.shade600, fontSize: 12),
                               ),
                             ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: skyBlue,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            p.isOwner ? 'Pemilik Kos' : 'Pencari Kos',
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold),
                           ),
                         ),
                       ],
@@ -457,66 +1032,50 @@ class _HomePageState extends State<HomePage> {
 
                 const SizedBox(height: 14),
 
-                // =====================================================
-                // 2. Banner Promosi (Khusus Owner)
-                // =====================================================
+                // ---- Banner Promosi (Owner) ----
                 if (p.isOwner || p.isAdmin) ...[
                   Card(
-                    color: const Color(0xFFE0F2FE), // sky-100
+                    color: const Color(0xFFE0F2FE),
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
-                      side: const BorderSide(color: skyBlueLight, width: 1.2),
+                      side: const BorderSide(color: skyBlueLight),
                     ),
                     child: ListTile(
-                      leading: const Icon(Icons.campaign, color: skyBlue, size: 34),
-                      title: const Text(
-                        'Promosikan Kos Anda! 📢',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: skyBlue,
-                        ),
-                      ),
+                      leading: const Icon(Icons.campaign,
+                          color: skyBlue, size: 32),
+                      title: const Text('Promosikan Kos Anda! 📢',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, color: skyBlue)),
                       subtitle: const Text(
-                        'Kirim notifikasi broadcast ke seluruh pencari kos.',
-                        style: TextStyle(fontSize: 12),
-                      ),
+                          'Kirim notifikasi ke semua pencari kos.',
+                          style: TextStyle(fontSize: 12)),
                       trailing: FilledButton(
-                        style: FilledButton.styleFrom(
-                          backgroundColor: skyBlue,
-                        ),
+                        style: FilledButton.styleFrom(backgroundColor: skyBlue),
                         onPressed: () => _sendPromotionNotification(
-                          'Kos Pondok Mahasiswa Undiksha',
-                          700000,
-                        ),
-                        child: const Text('Tes Promosi'),
+                            'Kos Pondok Mahasiswa', 700000),
+                        child: const Text('Tes Promo'),
                       ),
                     ),
                   ),
                   const SizedBox(height: 14),
                 ],
 
-                // =====================================================
-                // 3. Header Daftar Kos
-                // =====================================================
+                // ---- Header Daftar Kos ----
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.apartment, color: skyBlue, size: 20),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Daftar Kos Sekitar Kampus',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF0369A1), // sky-700
-                              ),
-                        ),
-                      ],
+                    const Icon(Icons.apartment, color: skyBlue, size: 20),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Daftar Kos Sekitar Kampus',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: skyBlueDark,
+                          ),
                     ),
+                    const Spacer(),
                     IconButton(
-                      tooltip: 'Muat ulang data',
+                      tooltip: 'Muat ulang',
                       icon: const Icon(Icons.refresh, color: skyBlue),
                       onPressed: _refreshData,
                     ),
@@ -524,19 +1083,15 @@ class _HomePageState extends State<HomePage> {
                 ),
                 const SizedBox(height: 8),
 
-                // =====================================================
-                // 4. FutureBuilder Daftar Kos
-                // =====================================================
+                // ---- FutureBuilder Kos ----
                 FutureBuilder<List<Map<String, dynamic>>>(
                   future: _kosFuture,
                   builder: (context, kosSnap) {
                     if (kosSnap.connectionState != ConnectionState.done) {
                       return const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(32),
-                          child: CircularProgressIndicator(),
-                        ),
-                      );
+                          child: Padding(
+                              padding: EdgeInsets.all(32),
+                              child: CircularProgressIndicator()));
                     }
 
                     final items = kosSnap.data ?? [];
@@ -548,18 +1103,16 @@ class _HomePageState extends State<HomePage> {
                           child: Center(
                             child: Column(
                               children: [
-                                Icon(
-                                  Icons.home_work_outlined,
-                                  size: 48,
-                                  color: Colors.grey.shade400,
-                                ),
+                                Icon(Icons.home_work_outlined,
+                                    size: 48, color: Colors.grey.shade400),
                                 const SizedBox(height: 12),
                                 Text(
                                   p.isOwner
-                                      ? 'Belum ada kos terdaftar.\nKlik tombol "+ Tambah Kos" di bawah.'
-                                      : 'Belum ada kos terdaftar saat ini.',
+                                      ? 'Belum ada kos. Tambahkan kos Anda!'
+                                      : 'Belum ada kos terdaftar.',
                                   textAlign: TextAlign.center,
-                                  style: TextStyle(color: Colors.grey.shade600),
+                                  style:
+                                      TextStyle(color: Colors.grey.shade600),
                                 ),
                               ],
                             ),
@@ -572,14 +1125,17 @@ class _HomePageState extends State<HomePage> {
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: items.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
                       itemBuilder: (context, i) {
                         final kos = items[i];
-                        // Owner bisa kelola semua kos (untuk demo/pengujian)
                         final isMine = p.isOwner ||
-                            (kos['owner_id'] != null && kos['owner_id'] == myUid);
+                            (kos['owner_id'] != null &&
+                                kos['owner_id'] == myUid);
                         final isPromoted = kos['is_promoted'] == true;
                         final price = kos['price'] ?? 0;
+                        final kmDalam =
+                            (kos['kamar_mandi'] ?? 'luar') == 'dalam';
+                        final fotoKos = kos['foto_kos'] as String? ?? '';
 
                         return Card(
                           color: Colors.white,
@@ -587,168 +1143,203 @@ class _HomePageState extends State<HomePage> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
                             side: const BorderSide(
-                              color: skyBlueLight,
-                              width: 1.0,
-                            ),
+                                color: skyBlueLight, width: 1.0),
                           ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(14),
+                          clipBehavior: Clip.antiAlias,
+                          child: InkWell(
+                            onTap: () => _showKosDetail(kos, p),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Row(
+                                // ---- Foto Thumbnail ----
+                                Stack(
                                   children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(10),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFE0F2FE),
-                                        borderRadius: BorderRadius.circular(10),
+                                    _buildPhoto(
+                                      fotoKos.isNotEmpty ? fotoKos : null,
+                                      height: 170,
+                                      label: 'Foto Kos',
+                                    ),
+                                    // Badge PROMO
+                                    if (isPromoted)
+                                      Positioned(
+                                        top: 10,
+                                        left: 10,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 10, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFFEF3C7),
+                                            borderRadius:
+                                                BorderRadius.circular(20),
+                                            border: Border.all(
+                                                color:
+                                                    const Color(0xFFFBBF24)),
+                                          ),
+                                          child: const Text('🔥 PROMO',
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 10,
+                                                  color: Color(0xFFB45309))),
+                                        ),
                                       ),
-                                      child: const Icon(
-                                        Icons.apartment,
-                                        color: skyBlue,
-                                        size: 22,
+                                    // Badge KM
+                                    Positioned(
+                                      top: 10,
+                                      right: 10,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: kmDalam
+                                              ? skyBlue
+                                              : const Color(0xFF7C3AED),
+                                          borderRadius:
+                                              BorderRadius.circular(20),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              kmDalam
+                                                  ? Icons.bathroom
+                                                  : Icons.door_sliding_outlined,
+                                              color: Colors.white,
+                                              size: 12,
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              'KM ${kmDalam ? "Dalam" : "Luar"}',
+                                              style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            kos['name'] ?? 'Kos Tanpa Nama',
-                                            style: const TextStyle(
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Row(
-                                            children: [
-                                              Icon(
-                                                Icons.location_on,
-                                                size: 13,
-                                                color: Colors.grey.shade500,
-                                              ),
-                                              const SizedBox(width: 3),
-                                              Expanded(
-                                                child: Text(
-                                                  kos['address'] ?? '-',
-                                                  style: TextStyle(
-                                                    color: Colors.grey.shade600,
-                                                    fontSize: 12,
-                                                  ),
-                                                  overflow: TextOverflow.ellipsis,
-                                                ),
-                                              ),
+                                    // Overlay "Tap untuk detail"
+                                    Positioned(
+                                      bottom: 0,
+                                      left: 0,
+                                      right: 0,
+                                      child: Container(
+                                        height: 40,
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            begin: Alignment.bottomCenter,
+                                            end: Alignment.topCenter,
+                                            colors: [
+                                              Colors.black.withAlpha(140),
+                                              Colors.transparent,
                                             ],
+                                          ),
+                                        ),
+                                        alignment: Alignment.bottomCenter,
+                                        padding: const EdgeInsets.only(
+                                            bottom: 6),
+                                        child: const Text(
+                                          'Tap untuk lihat foto & detail lengkap',
+                                          style: TextStyle(
+                                              color: Colors.white70,
+                                              fontSize: 10),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+
+                                // ---- Info Kos ----
+                                Padding(
+                                  padding: const EdgeInsets.all(14),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        kos['name'] ?? 'Kos',
+                                        style: const TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        children: [
+                                          Icon(Icons.location_on,
+                                              size: 13,
+                                              color: Colors.grey.shade500),
+                                          const SizedBox(width: 3),
+                                          Expanded(
+                                            child: Text(
+                                              kos['address'] ?? '-',
+                                              style: TextStyle(
+                                                  color: Colors.grey.shade600,
+                                                  fontSize: 12),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
                                           ),
                                         ],
                                       ),
-                                    ),
-                                    if (isPromoted)
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFFEF3C7),
-                                          borderRadius: BorderRadius.circular(6),
-                                          border: Border.all(
-                                            color: const Color(0xFFFBBF24),
+                                      const SizedBox(height: 10),
+                                      Row(
+                                        children: [
+                                          const Icon(Icons.payments_outlined,
+                                              size: 15, color: skyBlue),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'Rp $price',
+                                            style: const TextStyle(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.bold,
+                                                color: skyBlue),
                                           ),
-                                        ),
-                                        child: const Text(
-                                          '🔥 PROMO',
-                                          style: TextStyle(
-                                            color: Color(0xFFB45309),
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 10,
-                                          ),
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                                const Divider(height: 20, color: skyBlueLight),
-                                Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.payments_outlined,
-                                      size: 16,
-                                      color: skyBlue,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'Rp $price',
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: skyBlue,
-                                      ),
-                                    ),
-                                    const Text(
-                                      ' / bulan',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey,
-                                      ),
-                                    ),
-                                    const Spacer(),
-                                    // Tombol aksi sesuai role
-                                    if (isMine) ...[
-                                      IconButton(
-                                        tooltip: 'Kirim Promosi',
-                                        icon: const Icon(
-                                          Icons.campaign,
-                                          color: skyBlue,
-                                        ),
-                                        onPressed: () => _sendPromotionNotification(
-                                          kos['name'] ?? 'Kos',
-                                          price,
-                                        ),
-                                      ),
-                                      IconButton(
-                                        tooltip: 'Edit Kos',
-                                        icon: const Icon(
-                                          Icons.edit,
-                                          color: skyBlue,
-                                        ),
-                                        onPressed: () => _showEditKosDialog(kos),
-                                      ),
-                                      IconButton(
-                                        tooltip: 'Hapus Kos',
-                                        icon: const Icon(
-                                          Icons.delete_outline,
-                                          color: Colors.red,
-                                        ),
-                                        onPressed: () async {
-                                          await _kosService.delete(
-                                            kos['id'].toString(),
-                                          );
-                                          _refreshData();
-                                        },
-                                      ),
-                                    ] else ...[
-                                      FilledButton(
-                                        style: FilledButton.styleFrom(
-                                          backgroundColor: skyBlue,
-                                        ),
-                                        onPressed: () {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                'Menghubungi pengelola: ${kos['name']}',
-                                              ),
-                                              backgroundColor: skyBlue,
+                                          const Text(' / bulan',
+                                              style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: Colors.grey)),
+                                          const Spacer(),
+                                          if (isMine) ...[
+                                            IconButton(
+                                              tooltip: 'Promosikan',
+                                              icon: const Icon(Icons.campaign,
+                                                  color: skyBlue, size: 20),
+                                              onPressed: () =>
+                                                  _sendPromotionNotification(
+                                                      kos['name'] ?? 'Kos',
+                                                      price),
                                             ),
-                                          );
-                                        },
-                                        child: const Text('Hubungi Kos'),
+                                            IconButton(
+                                              tooltip: 'Edit',
+                                              icon: const Icon(Icons.edit,
+                                                  color: skyBlue, size: 20),
+                                              onPressed: () =>
+                                                  _showEditKosDialog(kos),
+                                            ),
+                                            IconButton(
+                                              tooltip: 'Hapus',
+                                              icon: const Icon(
+                                                  Icons.delete_outline,
+                                                  color: Colors.red,
+                                                  size: 20),
+                                              onPressed: () async {
+                                                await _kosService.delete(
+                                                    kos['id'].toString());
+                                                _refreshData();
+                                              },
+                                            ),
+                                          ] else
+                                            FilledButton(
+                                              style: FilledButton.styleFrom(
+                                                  backgroundColor: skyBlue),
+                                              onPressed: () =>
+                                                  _showKosDetail(kos, p),
+                                              child:
+                                                  const Text('Lihat Detail'),
+                                            ),
+                                        ],
                                       ),
                                     ],
-                                  ],
+                                  ),
                                 ),
                               ],
                             ),
@@ -763,7 +1354,6 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
           ),
-          // Tombol "+ Tambah Kos" HANYA untuk Owner (RoleGuard)
           floatingActionButton: RoleGuard(
             role: p.role,
             allowed: const ['owner', 'admin'],

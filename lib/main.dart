@@ -517,10 +517,14 @@ Future<void> main() async {
   // Menyiapkan Flutter sebelum inisialisasi layanan.
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+  } catch (e) {
+    debugPrint('Firebase init notice: $e');
+  }
 
   // Menginisialisasi Supabase sebelum runApp().
   await Supabase.initialize(

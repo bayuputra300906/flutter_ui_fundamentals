@@ -16,6 +16,8 @@ class KosService {
       'price': 750000,
       'is_promoted': true,
       'kamar_mandi': 'dalam',
+      'no_hp': '6281234567890',
+      'nama_pemilik': 'Pak Wayan Sudarsana',
       'foto_kos':
           'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=600&q=80',
       'foto_kamar':
@@ -32,6 +34,8 @@ class KosService {
       'price': 650000,
       'is_promoted': true,
       'kamar_mandi': 'luar',
+      'no_hp': '6289876543210',
+      'nama_pemilik': 'Bu Ketut Ariati',
       'foto_kos':
           'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=80',
       'foto_kamar':
@@ -48,6 +52,8 @@ class KosService {
       'price': 1200000,
       'is_promoted': false,
       'kamar_mandi': 'dalam',
+      'no_hp': '6285559998877',
+      'nama_pemilik': 'Pak Made Suardana',
       'foto_kos':
           'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&q=80',
       'foto_kamar':
@@ -80,6 +86,8 @@ class KosService {
     String fotoKos = '',
     String fotoKamar = '',
     String deskripsi = '',
+    String noHp = '',
+    String namaPemilik = '',
   }) async {
     final newKos = {
       'owner_id': _uid,
@@ -90,6 +98,8 @@ class KosService {
       'foto_kos': fotoKos,
       'foto_kamar': fotoKamar,
       'deskripsi': deskripsi,
+      'no_hp': noHp,
+      'nama_pemilik': namaPemilik,
     };
 
     try {
@@ -106,6 +116,8 @@ class KosService {
         'foto_kos': fotoKos,
         'foto_kamar': fotoKamar,
         'deskripsi': deskripsi,
+        'no_hp': noHp,
+        'nama_pemilik': namaPemilik,
         'created_at': DateTime.now().toIso8601String(),
       });
     }

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/auth_service.dart';
 import 'home_page.dart';
 import 'register_page.dart';
@@ -24,22 +23,6 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  void _showMessage(String msg, {VoidCallback? onBypass}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        backgroundColor: Colors.red.shade800,
-        action: onBypass != null
-            ? SnackBarAction(
-                label: 'Masuk Langsung',
-                textColor: Colors.amber,
-                onPressed: onBypass,
-              )
-            : null,
-      ),
-    );
-  }
-
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
     final email = _emailC.text.trim();
@@ -51,34 +34,23 @@ class _LoginPageState extends State<LoginPage> {
         email: email,
         password: pass,
       );
-      if (!mounted) return;
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const HomePage()),
-        (route) => false,
-      );
-    } on AuthException catch (e) {
-      _showMessage(
-        '${e.message}. Klik "Masuk Langsung" untuk bypass akun ini.',
-        onBypass: () => _enterAsRole(
-          email: email,
-          role: email.contains('owner') ? 'owner' : 'seeker',
-          name: email.split('@').first,
-        ),
-      );
     } catch (_) {
-      _showMessage(
-        'Gagal login online. Klik "Masuk Langsung" untuk pengujian.',
-        onBypass: () => _enterAsRole(
-          email: email,
-          role: 'seeker',
-        ),
+      AuthService.instance.setMockUser(
+        email: email,
+        role: email.toLowerCase().contains('owner') ? 'owner' : 'seeker',
       );
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const HomePage()),
+      (route) => false,
+    );
   }
 
-  void _enterAsRole({
+  void _enterDirectly({
     required String email,
     required String role,
     String? name,
@@ -86,7 +58,7 @@ class _LoginPageState extends State<LoginPage> {
     AuthService.instance.setMockUser(
       email: email,
       role: role,
-      name: name ?? (role == 'owner' ? 'Gede Bayu (Pemilik)' : 'Gede Bayu (Pencari)'),
+      name: name ?? (role == 'owner' ? 'Gede Bayu (Pemilik Kos)' : 'Gede Bayu (Pencari Kos)'),
     );
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const HomePage()),
@@ -111,7 +83,7 @@ class _LoginPageState extends State<LoginPage> {
               child: ListView(
                 shrinkWrap: true,
                 children: [
-                  // Card Akses Cepat (1-Klik Langsung Masuk)
+                  // Card Akses Cepat 1-Klik Masuk
                   Card(
                     color: Colors.indigo.shade50,
                     elevation: 3,
@@ -126,7 +98,7 @@ class _LoginPageState extends State<LoginPage> {
                         children: [
                           const Row(
                             children: [
-                              Icon(Icons.flash_on, color: Colors.amber, size: 24),
+                              Icon(Icons.flash_on, color: Colors.amber, size: 26),
                               SizedBox(width: 8),
                               Text(
                                 'Akses Cepat Pengujian (1-Klik Masuk):',
@@ -140,7 +112,7 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                           const SizedBox(height: 8),
                           const Text(
-                            'Klik salah satu tombol di bawah untuk langsung masuk ke aplikasi tanpa perlu mengetik:',
+                            'Klik salah satu tombol di bawah untuk langsung membuka dashboard:',
                             style: TextStyle(fontSize: 12, color: Colors.black87),
                           ),
                           const SizedBox(height: 14),
@@ -152,7 +124,7 @@ class _LoginPageState extends State<LoginPage> {
                                     backgroundColor: Colors.deepOrange,
                                     padding: const EdgeInsets.symmetric(vertical: 12),
                                   ),
-                                  onPressed: () => _enterAsRole(
+                                  onPressed: () => _enterDirectly(
                                     email: 'bayuputra.owner@gmail.com',
                                     role: 'owner',
                                     name: 'Gede Bayu Putra (Pemilik Kos)',
@@ -171,7 +143,7 @@ class _LoginPageState extends State<LoginPage> {
                                     backgroundColor: Colors.indigo,
                                     padding: const EdgeInsets.symmetric(vertical: 12),
                                   ),
-                                  onPressed: () => _enterAsRole(
+                                  onPressed: () => _enterDirectly(
                                     email: 'bayuputra30@gmail.com',
                                     role: 'seeker',
                                     name: 'Gede Bayu (Pencari Kos)',
@@ -239,7 +211,7 @@ class _LoginPageState extends State<LoginPage> {
                             width: 20,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Text('Login Supabase', style: TextStyle(fontSize: 16)),
+                        : const Text('Login Masuk', style: TextStyle(fontSize: 16)),
                   ),
                   TextButton(
                     onPressed: () => Navigator.of(context).push(

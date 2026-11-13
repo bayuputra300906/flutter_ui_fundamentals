@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
 import '../services/auth_service.dart';
 import '../services/profile_service.dart';
 import '../services/kos_service.dart';
@@ -73,7 +76,141 @@ class _HomePageState extends State<HomePage> {
   }
 
   // =========================================================
-  // Widget Foto (aman: tampilkan placeholder jika URL kosong)
+  // Buka WhatsApp pemilik kos
+  // =========================================================
+  void _hubungiWhatsApp({
+    required String noHp,
+    required String kosName,
+    required int price,
+  }) {
+    // Bersihkan nomor HP: hapus semua non-digit, pastikan diawali 62
+    final clean = noHp.replaceAll(RegExp(r'[^0-9]'), '');
+    final wa = clean.startsWith('0')
+        ? '62${clean.substring(1)}'
+        : clean.startsWith('62')
+            ? clean
+            : '62$clean';
+
+    final pesan = Uri.encodeComponent(
+      'Halo, saya tertarik dengan kos "$kosName" (Rp $price/bulan) '
+      'yang saya lihat di aplikasi KosFinder. Apakah masih tersedia? 🏠',
+    );
+    final url = 'https://wa.me/$wa?text=$pesan';
+    html.window.open(url, '_blank');
+  }
+
+  // Dialog pilihan kontak (WhatsApp + Salin nomor)
+  void _showKontakDialog(Map<String, dynamic> kos) {
+    final noHp = (kos['no_hp'] ?? '').toString();
+    final namaPemilik = (kos['nama_pemilik'] ?? 'Pemilik Kos').toString();
+    final kosName = (kos['name'] ?? 'Kos').toString();
+    final price = kos['price'] ?? 0;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.contact_phone, color: skyBlue),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Text('Hubungi Pemilik Kos',
+                  style: TextStyle(fontSize: 16)),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Info pemilik
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: skyBlueSurface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: skyBlueLight),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(children: [
+                    const Icon(Icons.person, size: 16, color: skyBlue),
+                    const SizedBox(width: 6),
+                    Text(namaPemilik,
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
+                  ]),
+                  const SizedBox(height: 6),
+                  Row(children: [
+                    const Icon(Icons.home, size: 16, color: skyBlue),
+                    const SizedBox(width: 6),
+                    Expanded(
+                        child: Text(kosName,
+                            style: const TextStyle(fontSize: 13))),
+                  ]),
+                  if (noHp.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Row(children: [
+                      const Icon(Icons.phone, size: 16, color: skyBlue),
+                      const SizedBox(width: 6),
+                      Text(noHp,
+                          style: const TextStyle(
+                              fontSize: 13, fontWeight: FontWeight.w500)),
+                    ]),
+                  ],
+                ],
+              ),
+            ),
+
+            if (noHp.isEmpty) ...[
+              const SizedBox(height: 12),
+              const Text(
+                '⚠️ Pemilik belum mengisi nomor HP.\nCoba hubungi melalui notifikasi.',
+                style: TextStyle(fontSize: 12, color: Colors.orange),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          // Salin nomor
+          if (noHp.isNotEmpty)
+            TextButton.icon(
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: noHp));
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                  content: Text('📋 Nomor HP disalin!'),
+                  backgroundColor: skyBlue,
+                ));
+              },
+              icon: const Icon(Icons.copy, size: 16),
+              label: const Text('Salin Nomor'),
+              style: TextButton.styleFrom(foregroundColor: skyBlue),
+            ),
+          // Tutup
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Tutup'),
+          ),
+          // WhatsApp
+          if (noHp.isNotEmpty)
+            FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF25D366), // warna WA
+              ),
+              onPressed: () {
+                Navigator.pop(ctx);
+                _hubungiWhatsApp(
+                    noHp: noHp, kosName: kosName, price: price);
+              },
+              icon: const Icon(Icons.chat, size: 18),
+              label: const Text('WhatsApp'),
+            ),
+        ],
+      ),
+    );
+  }
   // =========================================================
   Widget _buildPhoto(String? url, {double height = 180, String label = 'Foto'}) {
     if (url == null || url.trim().isEmpty) {
@@ -142,6 +279,8 @@ class _HomePageState extends State<HomePage> {
     final isPromoted = kos['is_promoted'] == true;
     final kmDalam = (kos['kamar_mandi'] ?? 'luar') == 'dalam';
     final price = kos['price'] ?? 0;
+    final noHp = (kos['no_hp'] ?? '').toString();
+    final namaPemilik = (kos['nama_pemilik'] ?? 'Pemilik Kos').toString();
 
     showModalBottomSheet(
       context: context,
@@ -322,9 +461,155 @@ class _HomePageState extends State<HomePage> {
                 ),
               ],
 
+              // ---- KONTAK PEMILIK ----
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _sectionLabel('📞 Kontak Pemilik Kos'),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: skyBlueLight, width: 1.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: skyBlue.withAlpha(20),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          // Nama pemilik
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFE0F2FE),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(Icons.person, color: skyBlue, size: 20),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('Nama Pemilik',
+                                        style: TextStyle(
+                                            fontSize: 11, color: Colors.grey)),
+                                    Text(
+                                      (kos['nama_pemilik'] ?? '').toString().isNotEmpty
+                                          ? kos['nama_pemilik']
+                                          : 'Pemilik Kos',
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          const Divider(height: 1),
+                          const SizedBox(height: 10),
+                          // Nomor WhatsApp
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFDCFCE7),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(Icons.phone, color: Color(0xFF16A34A), size: 20),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('Nomor WhatsApp / HP',
+                                        style: TextStyle(
+                                            fontSize: 11, color: Colors.grey)),
+                                    Text(
+                                      (kos['no_hp'] ?? '').toString().isNotEmpty
+                                          ? kos['no_hp']
+                                          : 'Belum diisi pemilik',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                          color: (kos['no_hp'] ?? '').toString().isNotEmpty
+                                              ? Colors.black87
+                                              : Colors.grey),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              // Tombol salin nomor
+                              if ((kos['no_hp'] ?? '').toString().isNotEmpty)
+                                IconButton(
+                                  tooltip: 'Salin Nomor',
+                                  icon: const Icon(Icons.copy, size: 18, color: skyBlue),
+                                  onPressed: () {
+                                    Clipboard.setData(
+                                        ClipboardData(text: kos['no_hp']));
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('📋 Nomor HP disalin!'),
+                                        backgroundColor: skyBlue,
+                                        duration: Duration(seconds: 2),
+                                      ),
+                                    );
+                                  },
+                                ),
+                            ],
+                          ),
+                          // Tombol WhatsApp
+                          if ((kos['no_hp'] ?? '').toString().isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              width: double.infinity,
+                              child: FilledButton.icon(
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: const Color(0xFF25D366),
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10)),
+                                ),
+                                onPressed: () {
+                                  _hubungiWhatsApp(
+                                    noHp: kos['no_hp'],
+                                    kosName: kos['name'] ?? 'Kos',
+                                    price: price,
+                                  );
+                                },
+                                icon: const Icon(Icons.chat, size: 18),
+                                label: const Text(
+                                  'Chat via WhatsApp',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
               const SizedBox(height: 24),
 
-              // ---- TOMBOL AKSI ----
+              // ---- TOMBOL AKSI (Owner: Edit & Promosi) ----
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: p.isOwner
@@ -367,19 +652,15 @@ class _HomePageState extends State<HomePage> {
                         width: double.infinity,
                         child: FilledButton.icon(
                           style: FilledButton.styleFrom(
-                            backgroundColor: skyBlue,
+                            backgroundColor: const Color(0xFF25D366),
                             padding: const EdgeInsets.symmetric(vertical: 14),
                           ),
                           onPressed: () {
                             Navigator.pop(ctx);
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              content:
-                                  Text('Menghubungi pengelola ${kos['name']}...'),
-                              backgroundColor: skyBlue,
-                            ));
+                            _showKontakDialog(kos);
                           },
-                          icon: const Icon(Icons.phone, size: 18),
-                          label: const Text('Hubungi Pemilik Kos',
+                          icon: const Icon(Icons.chat, size: 18),
+                          label: const Text('Hubungi Pemilik via WhatsApp',
                               style: TextStyle(fontSize: 15)),
                         ),
                       ),
@@ -436,6 +717,8 @@ class _HomePageState extends State<HomePage> {
     final fotoKosC = TextEditingController();
     final fotoKamarC = TextEditingController();
     final deskripsiC = TextEditingController();
+    final noHpC = TextEditingController();
+    final namaPemilikC = TextEditingController();
     String kamarMandi = 'dalam';
     bool sendPromo = true;
 
@@ -516,6 +799,27 @@ class _HomePageState extends State<HomePage> {
                       'Fasilitas, kondisi, keunggulan kos Anda...',
                   icon: Icons.notes,
                   maxLines: 3,
+                ),
+                const SizedBox(height: 16),
+
+                // Kontak Pemilik
+                const Text('📞 Kontak Pemilik (untuk Pencari Kos)',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 13)),
+                const SizedBox(height: 8),
+                _buildFormField(
+                  controller: namaPemilikC,
+                  label: 'Nama Pemilik Kos',
+                  hint: 'Contoh: Pak Wayan Sudarsana',
+                  icon: Icons.person,
+                ),
+                const SizedBox(height: 10),
+                _buildFormField(
+                  controller: noHpC,
+                  label: 'Nomor WhatsApp / HP',
+                  hint: 'Contoh: 08123456789 atau 6281234567890',
+                  icon: Icons.phone,
+                  keyboardType: TextInputType.phone,
                 ),
                 const SizedBox(height: 16),
 
@@ -677,6 +981,8 @@ class _HomePageState extends State<HomePage> {
                       fotoKos: fotoKosC.text.trim(),
                       fotoKamar: fotoKamarC.text.trim(),
                       deskripsi: deskripsiC.text.trim(),
+                      noHp: noHpC.text.trim(),
+                      namaPemilik: namaPemilikC.text.trim(),
                     );
                     if (sendPromo) _sendPromotionNotification(name, price);
                     _refreshData();
@@ -703,6 +1009,8 @@ class _HomePageState extends State<HomePage> {
     final fotoKosC = TextEditingController(text: kos['foto_kos'] ?? '');
     final fotoKamarC = TextEditingController(text: kos['foto_kamar'] ?? '');
     final deskripsiC = TextEditingController(text: kos['deskripsi'] ?? '');
+    final noHpC = TextEditingController(text: kos['no_hp'] ?? '');
+    final namaPemilikC = TextEditingController(text: kos['nama_pemilik'] ?? '');
     String kamarMandi = kos['kamar_mandi'] ?? 'luar';
 
     showModalBottomSheet(
@@ -761,6 +1069,21 @@ class _HomePageState extends State<HomePage> {
                     label: 'Deskripsi',
                     icon: Icons.notes,
                     maxLines: 3),
+                const SizedBox(height: 16),
+                const Text('📞 Kontak Pemilik',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                const SizedBox(height: 8),
+                _buildFormField(
+                    controller: namaPemilikC,
+                    label: 'Nama Pemilik',
+                    icon: Icons.person),
+                const SizedBox(height: 10),
+                _buildFormField(
+                    controller: noHpC,
+                    label: 'Nomor WhatsApp / HP',
+                    hint: 'Contoh: 08123456789',
+                    icon: Icons.phone,
+                    keyboardType: TextInputType.phone),
                 const SizedBox(height: 16),
                 const Text('🚿 Kamar Mandi',
                     style:
@@ -831,6 +1154,8 @@ class _HomePageState extends State<HomePage> {
                       'foto_kos': fotoKosC.text.trim(),
                       'foto_kamar': fotoKamarC.text.trim(),
                       'deskripsi': deskripsiC.text.trim(),
+                      'no_hp': noHpC.text.trim(),
+                      'nama_pemilik': namaPemilikC.text.trim(),
                     });
                     _refreshData();
                   },
@@ -1335,8 +1660,7 @@ class _HomePageState extends State<HomePage> {
                                                   _showKosDetail(kos, p),
                                               child:
                                                   const Text('Lihat Detail'),
-                                            ),
-                                        ],
+                                            ),                                        ],
                                       ),
                                     ],
                                   ),

@@ -16,6 +16,10 @@ class _LoginPageState extends State<LoginPage> {
   final _passC = TextEditingController();
   bool _loading = false;
 
+  static const Color skyBlue = Color(0xFF0284C7);
+  static const Color skyBlueLight = Color(0xFFBAE6FD);
+  static const Color skyBlueSurface = Color(0xFFF0F9FF);
+
   @override
   void dispose() {
     _emailC.dispose();
@@ -30,10 +34,7 @@ class _LoginPageState extends State<LoginPage> {
 
     setState(() => _loading = true);
     try {
-      await AuthService.instance.login(
-        email: email,
-        password: pass,
-      );
+      await AuthService.instance.login(email: email, password: pass);
     } catch (_) {
       AuthService.instance.setMockUser(
         email: email,
@@ -58,7 +59,10 @@ class _LoginPageState extends State<LoginPage> {
     AuthService.instance.setMockUser(
       email: email,
       role: role,
-      name: name ?? (role == 'owner' ? 'Gede Bayu (Pemilik Kos)' : 'Gede Bayu (Pencari Kos)'),
+      name: name ??
+          (role == 'owner'
+              ? 'Gede Bayu (Pemilik Kos)'
+              : 'Gede Bayu (Pencari Kos)'),
     );
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const HomePage()),
@@ -69,9 +73,24 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: skyBlueSurface,
       appBar: AppBar(
-        title: const Text('Login KosFinder'),
-        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+        backgroundColor: skyBlue,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        title: const Row(
+          children: [
+            Icon(Icons.apartment, color: Colors.white, size: 22),
+            SizedBox(width: 8),
+            Text(
+              'KosFinder',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
       ),
       body: Center(
         child: ConstrainedBox(
@@ -83,37 +102,101 @@ class _LoginPageState extends State<LoginPage> {
               child: ListView(
                 shrinkWrap: true,
                 children: [
-                  // Card Akses Cepat 1-Klik Masuk
+                  const SizedBox(height: 20),
+
+                  // ===================================================
+                  // Header
+                  // ===================================================
+                  const Text(
+                    'Selamat Datang! 👋',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: skyBlue,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Temukan kos terbaik di sekitar kampus Undiksha',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: 14,
+                    ),
+                  ),
+
+                  const SizedBox(height: 28),
+
+                  // ===================================================
+                  // Kartu Akses Cepat 1-Klik
+                  // ===================================================
                   Card(
-                    color: Colors.indigo.shade50,
-                    elevation: 3,
+                    color: Colors.white,
+                    elevation: 2,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
-                      side: BorderSide(color: Colors.indigo.shade200, width: 1.5),
+                      side: const BorderSide(color: skyBlueLight, width: 1.5),
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(18),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Row(
+                          Row(
                             children: [
-                              Icon(Icons.flash_on, color: Colors.amber, size: 26),
-                              SizedBox(width: 8),
-                              Text(
-                                'Akses Cepat Pengujian (1-Klik Masuk):',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                  color: Colors.indigo,
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFEF3C7),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(
+                                  Icons.flash_on,
+                                  color: Color(0xFFD97706),
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              const Expanded(
+                                child: Text(
+                                  'Akses Cepat Pengujian (1-Klik):',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                    color: skyBlue,
+                                  ),
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Klik salah satu tombol di bawah untuk langsung membuka dashboard:',
-                            style: TextStyle(fontSize: 12, color: Colors.black87),
+                          const SizedBox(height: 10),
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: skyBlueSurface,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: const [
+                                Text(
+                                  '🏠 Pemilik Kos: bayuputra.owner@gmail.com',
+                                  style: TextStyle(fontSize: 12),
+                                ),
+                                Text(
+                                  '🔍 Pencari Kos: bayuputra30@gmail.com',
+                                  style: TextStyle(fontSize: 12),
+                                ),
+                                Text(
+                                  '   Password: password123',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                           const SizedBox(height: 14),
                           Row(
@@ -121,8 +204,13 @@ class _LoginPageState extends State<LoginPage> {
                               Expanded(
                                 child: FilledButton.icon(
                                   style: FilledButton.styleFrom(
-                                    backgroundColor: Colors.deepOrange,
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    backgroundColor: skyBlue,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
                                   ),
                                   onPressed: () => _enterDirectly(
                                     email: 'bayuputra.owner@gmail.com',
@@ -136,12 +224,18 @@ class _LoginPageState extends State<LoginPage> {
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 12),
+                              const SizedBox(width: 10),
                               Expanded(
-                                child: FilledButton.icon(
-                                  style: FilledButton.styleFrom(
-                                    backgroundColor: Colors.indigo,
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                child: OutlinedButton.icon(
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: skyBlue,
+                                    side: const BorderSide(color: skyBlue, width: 1.5),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
                                   ),
                                   onPressed: () => _enterDirectly(
                                     email: 'bayuputra30@gmail.com',
@@ -163,38 +257,67 @@ class _LoginPageState extends State<LoginPage> {
                   ),
 
                   const SizedBox(height: 24),
-                  const Row(
+
+                  // ===================================================
+                  // Divider
+                  // ===================================================
+                  Row(
                     children: [
-                      Expanded(child: Divider()),
+                      const Expanded(child: Divider()),
                       Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 12),
-                        child: Text('atau login manual', style: TextStyle(color: Colors.grey)),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Text(
+                          'atau login dengan email',
+                          style: TextStyle(
+                            color: Colors.grey.shade500,
+                            fontSize: 12,
+                          ),
+                        ),
                       ),
-                      Expanded(child: Divider()),
+                      const Expanded(child: Divider()),
                     ],
                   ),
-                  const SizedBox(height: 16),
 
+                  const SizedBox(height: 20),
+
+                  // ===================================================
+                  // Form Login Manual
+                  // ===================================================
                   TextFormField(
                     controller: _emailC,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Email',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.email),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: skyBlue, width: 2),
+                      ),
+                      prefixIcon: const Icon(Icons.email_outlined, color: skyBlue),
+                      filled: true,
+                      fillColor: Colors.white,
                     ),
-                    validator: (v) => (v == null || v.trim().isEmpty)
-                        ? 'Email wajib diisi'
-                        : null,
+                    validator: (v) =>
+                        (v == null || v.trim().isEmpty) ? 'Email wajib diisi' : null,
                   ),
                   const SizedBox(height: 14),
                   TextFormField(
                     controller: _passC,
                     obscureText: true,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Password',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.lock),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: skyBlue, width: 2),
+                      ),
+                      prefixIcon: const Icon(Icons.lock_outline, color: skyBlue),
+                      filled: true,
+                      fillColor: Colors.white,
                     ),
                     validator: (v) =>
                         (v == null || v.isEmpty) ? 'Password wajib diisi' : null,
@@ -203,22 +326,40 @@ class _LoginPageState extends State<LoginPage> {
                   FilledButton(
                     onPressed: _loading ? null : _login,
                     style: FilledButton.styleFrom(
+                      backgroundColor: skyBlue,
                       padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
                     child: _loading
                         ? const SizedBox(
                             height: 20,
                             width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
                           )
-                        : const Text('Login Masuk', style: TextStyle(fontSize: 16)),
+                        : const Text(
+                            'Login',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                   ),
+                  const SizedBox(height: 8),
                   TextButton(
                     onPressed: () => Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => const RegisterPage()),
                     ),
-                    child: const Text('Belum punya akun? Register'),
+                    child: const Text(
+                      'Belum punya akun? Daftar di sini',
+                      style: TextStyle(color: skyBlue),
+                    ),
                   ),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),

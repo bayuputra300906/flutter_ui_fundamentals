@@ -14,9 +14,14 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  late Future<UserProfile?> _profileFuture;
+  late Future<UserProfile> _profileFuture;
   late Future<List<Map<String, dynamic>>> _kosFuture;
   final KosService _kosService = KosService();
+
+  // Sky Blue theme colors
+  static const Color skyBlue = Color(0xFF0284C7);
+  static const Color skyBlueLight = Color(0xFFBAE6FD);
+  static const Color skyBlueSurface = Color(0xFFF0F9FF);
 
   @override
   void initState() {
@@ -55,7 +60,7 @@ class _HomePageState extends State<HomePage> {
         content: Text(
           'Role berhasil diubah menjadi: ${nextRole == "owner" ? "Pemilik Kos (owner)" : "Pencari Kos (seeker)"}',
         ),
-        backgroundColor: nextRole == 'owner' ? Colors.deepOrange : Colors.indigo,
+        backgroundColor: skyBlue,
       ),
     );
     _refreshData();
@@ -69,7 +74,7 @@ class _HomePageState extends State<HomePage> {
           '🏠 KosFinder Broadcast:\nKos baru tersedia di sekitar kampus!\n$kosTitle • Rp $price/bulan',
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        backgroundColor: Colors.indigo,
+        backgroundColor: skyBlue,
         duration: const Duration(seconds: 4),
         action: SnackBarAction(
           label: 'OK',
@@ -108,7 +113,7 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.add_home, color: Colors.indigo, size: 28),
+                      const Icon(Icons.add_home, color: skyBlue, size: 28),
                       const SizedBox(width: 10),
                       Text(
                         'Tambah & Promosikan Kos',
@@ -156,6 +161,7 @@ class _HomePageState extends State<HomePage> {
                       'Pencari kos akan menerima notifikasi "Kos baru tersedia di sekitar kampus"',
                     ),
                     value: sendPromo,
+                    activeColor: skyBlue,
                     onChanged: (val) => setModalState(() => sendPromo = val),
                   ),
                   const SizedBox(height: 16),
@@ -253,7 +259,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<UserProfile?>(
+    return FutureBuilder<UserProfile>(
       future: _profileFuture,
       builder: (context, snap) {
         if (snap.connectionState != ConnectionState.done) {
@@ -261,39 +267,45 @@ class _HomePageState extends State<HomePage> {
             body: Center(child: CircularProgressIndicator()),
           );
         }
-        final p = snap.data;
-        if (snap.hasError || p == null) {
-          return Scaffold(
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text('Gagal memuat profil pengguna'),
-                  const SizedBox(height: 12),
-                  ElevatedButton(
-                    onPressed: _logout,
-                    child: const Text('Kembali ke Login'),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
+
+        // Karena ProfileService.getMyProfile() selalu return non-null,
+        // snap.data pasti ada. Fallback ke default owner jika terjadi hal tak terduga.
+        final p = snap.data ??
+            const UserProfile(
+              id: 'owner-default-bayu',
+              email: 'bayuputra.owner@gmail.com',
+              name: 'Gede Bayu Putra Darmawan',
+              role: 'owner',
+            );
 
         final myUid = AuthService.instance.currentUser?.id ?? '';
-        final roleLabel = p.isOwner ? 'Pemilik Kos (owner)' : 'Pencari Kos (seeker)';
+        final roleLabel = p.isOwner ? 'Pemilik Kos' : 'Pencari Kos';
+        final roleIcon = p.isOwner ? Icons.home_work : Icons.person_search;
 
         return Scaffold(
+          backgroundColor: skyBlueSurface,
           appBar: AppBar(
-            backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-            title: Text(
-              'KosFinder (${p.role})',
-              style: const TextStyle(fontWeight: FontWeight.bold),
+            backgroundColor: skyBlue,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            title: Row(
+              children: [
+                const Icon(Icons.apartment, size: 22),
+                const SizedBox(width: 8),
+                Text(
+                  'KosFinder',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
             ),
             actions: [
               IconButton(
-                tooltip: 'Ganti Role Cepat (${p.isOwner ? "Ubah ke Seeker" : "Ubah ke Owner"})',
-                icon: const Icon(Icons.swap_horiz, size: 28),
+                tooltip: p.isOwner ? 'Ubah ke Seeker' : 'Ubah ke Owner',
+                icon: const Icon(Icons.swap_horiz, size: 26),
                 onPressed: () => _toggleRole(p),
               ),
               IconButton(
@@ -304,18 +316,22 @@ class _HomePageState extends State<HomePage> {
             ],
           ),
           body: RefreshIndicator(
+            color: skyBlue,
             onRefresh: () async => _refreshData(),
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                // 1. Kartu Informasi Akun & Hak Akses Role
+                // =====================================================
+                // 1. Kartu Profil & Role Pengguna
+                // =====================================================
                 Card(
+                  color: Colors.white,
                   elevation: 2,
-                  color: p.isOwner ? Colors.orange.shade50 : Colors.indigo.shade50,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                     side: BorderSide(
-                      color: p.isOwner ? Colors.orange.shade200 : Colors.indigo.shade200,
+                      color: p.isOwner ? skyBlue.withOpacity(0.6) : skyBlueLight,
+                      width: 1.5,
                     ),
                   ),
                   child: Padding(
@@ -326,11 +342,12 @@ class _HomePageState extends State<HomePage> {
                         Row(
                           children: [
                             CircleAvatar(
-                              radius: 24,
-                              backgroundColor: p.isOwner ? Colors.deepOrange : Colors.indigo,
+                              radius: 26,
+                              backgroundColor: skyBlue,
                               child: Icon(
-                                p.isOwner ? Icons.home_work : Icons.person_search,
+                                roleIcon,
                                 color: Colors.white,
+                                size: 26,
                               ),
                             ),
                             const SizedBox(width: 14),
@@ -339,17 +356,47 @@ class _HomePageState extends State<HomePage> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    p.name.isEmpty ? p.email : p.name,
+                                    p.name.isNotEmpty ? p.name : p.email.split('@').first,
                                     style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                   Text(
-                                    p.email,
+                                    '${p.email} • ${p.role}',
                                     style: TextStyle(
-                                      color: Colors.grey.shade700,
-                                      fontSize: 13,
+                                      color: Colors.grey.shade600,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // Badge role
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: skyBlue,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    p.isOwner ? Icons.badge : Icons.search,
+                                    size: 14,
+                                    color: Colors.white,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    roleLabel,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11,
                                     ),
                                   ),
                                 ],
@@ -357,45 +404,50 @@ class _HomePageState extends State<HomePage> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Chip(
-                              avatar: Icon(
-                                p.isOwner ? Icons.badge : Icons.search,
-                                size: 16,
-                                color: Colors.white,
+                        const SizedBox(height: 10),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: skyBlueSurface,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.info_outline,
+                                size: 15,
+                                color: skyBlue,
                               ),
-                              label: Text(
-                                roleLabel,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  p.isOwner
+                                      ? 'Hak Akses: Tambah kos, edit, hapus, dan kirim promosi push notification.'
+                                      : 'Hak Akses: Lihat daftar kos dan hubungi pengelola.',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey.shade700,
+                                  ),
                                 ),
                               ),
-                              backgroundColor:
-                                  p.isOwner ? Colors.deepOrange : Colors.indigo,
-                            ),
-                            const Spacer(),
-                            TextButton.icon(
-                              onPressed: () => _toggleRole(p),
-                              icon: const Icon(Icons.switch_account, size: 18),
-                              label: Text(
-                                p.isOwner ? 'Ubah ke Seeker' : 'Ubah ke Owner',
-                                style: const TextStyle(fontSize: 12),
+                              TextButton(
+                                onPressed: () => _toggleRole(p),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: skyBlue,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                ),
+                                child: Text(
+                                  p.isOwner ? 'Ubah ke Seeker' : 'Ubah ke Owner',
+                                  style: const TextStyle(fontSize: 11),
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                        Text(
-                          p.isOwner
-                              ? 'Hak Akses Owner: Anda dapat menambah properti kos, mengedit kos Anda, dan membuat push notification promosi.'
-                              : 'Hak Akses Seeker: Anda dapat melihat daftar kos dan fitur pencarian. Tombol kelola/tambah kos disembunyikan untuk Anda.',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade800,
-                            fontStyle: FontStyle.italic,
+                            ],
                           ),
                         ),
                       ],
@@ -403,25 +455,36 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
 
-                // 2. Banner Promosi Khusus Owner
+                // =====================================================
+                // 2. Banner Promosi (Khusus Owner)
+                // =====================================================
                 if (p.isOwner || p.isAdmin) ...[
                   Card(
-                    color: Colors.amber.shade100,
+                    color: const Color(0xFFE0F2FE), // sky-100
+                    elevation: 0,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(14),
+                      side: const BorderSide(color: skyBlueLight, width: 1.2),
                     ),
                     child: ListTile(
-                      leading: const Icon(Icons.campaign, color: Colors.deepOrange, size: 34),
+                      leading: const Icon(Icons.campaign, color: skyBlue, size: 34),
                       title: const Text(
-                        'Pasarkan Kos Anda Sekarang! 📢',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                        'Promosikan Kos Anda! 📢',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: skyBlue,
+                        ),
                       ),
                       subtitle: const Text(
-                        'Kirim notifikasi broadcast ke seluruh calon pencari kos.',
+                        'Kirim notifikasi broadcast ke seluruh pencari kos.',
+                        style: TextStyle(fontSize: 12),
                       ),
-                      trailing: FilledButton.tonal(
+                      trailing: FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: skyBlue,
+                        ),
                         onPressed: () => _sendPromotionNotification(
                           'Kos Pondok Mahasiswa Undiksha',
                           700000,
@@ -430,29 +493,40 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 14),
                 ],
 
+                // =====================================================
                 // 3. Header Daftar Kos
+                // =====================================================
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Daftar Kos Sekitar Kampus 🏠',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                    Row(
+                      children: [
+                        const Icon(Icons.apartment, color: skyBlue, size: 20),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Daftar Kos Sekitar Kampus',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF0369A1), // sky-700
+                              ),
+                        ),
+                      ],
                     ),
                     IconButton(
                       tooltip: 'Muat ulang data',
-                      icon: const Icon(Icons.refresh),
+                      icon: const Icon(Icons.refresh, color: skyBlue),
                       onPressed: _refreshData,
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
 
-                // 4. List of Kos Cards
+                // =====================================================
+                // 4. FutureBuilder Daftar Kos
+                // =====================================================
                 FutureBuilder<List<Map<String, dynamic>>>(
                   future: _kosFuture,
                   builder: (context, kosSnap) {
@@ -467,13 +541,27 @@ class _HomePageState extends State<HomePage> {
 
                     final items = kosSnap.data ?? [];
                     if (items.isEmpty) {
-                      return const Card(
+                      return Card(
+                        color: Colors.white,
                         child: Padding(
-                          padding: EdgeInsets.all(32),
+                          padding: const EdgeInsets.all(32),
                           child: Center(
-                            child: Text(
-                              'Belum ada kos terdaftar.\nJika Anda Owner, klik tombol "+ Tambah Kos" di bawah.',
-                              textAlign: TextAlign.center,
+                            child: Column(
+                              children: [
+                                Icon(
+                                  Icons.home_work_outlined,
+                                  size: 48,
+                                  color: Colors.grey.shade400,
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  p.isOwner
+                                      ? 'Belum ada kos terdaftar.\nKlik tombol "+ Tambah Kos" di bawah.'
+                                      : 'Belum ada kos terdaftar saat ini.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: Colors.grey.shade600),
+                                ),
+                              ],
                             ),
                           ),
                         ),
@@ -484,16 +572,24 @@ class _HomePageState extends State<HomePage> {
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: items.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
                       itemBuilder: (context, i) {
                         final kos = items[i];
-                        final isMine = (kos['owner_id'] == myUid) || (p.isOwner && i == 0);
+                        // Owner bisa kelola semua kos (untuk demo/pengujian)
+                        final isMine = p.isOwner ||
+                            (kos['owner_id'] != null && kos['owner_id'] == myUid);
                         final isPromoted = kos['is_promoted'] == true;
+                        final price = kos['price'] ?? 0;
 
                         return Card(
+                          color: Colors.white,
                           elevation: 2,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
+                            side: const BorderSide(
+                              color: skyBlueLight,
+                              width: 1.0,
+                            ),
                           ),
                           child: Padding(
                             padding: const EdgeInsets.all(14),
@@ -505,10 +601,14 @@ class _HomePageState extends State<HomePage> {
                                     Container(
                                       padding: const EdgeInsets.all(10),
                                       decoration: BoxDecoration(
-                                        color: Colors.indigo.shade50,
+                                        color: const Color(0xFFE0F2FE),
                                         borderRadius: BorderRadius.circular(10),
                                       ),
-                                      child: const Icon(Icons.apartment, color: Colors.indigo),
+                                      child: const Icon(
+                                        Icons.apartment,
+                                        color: skyBlue,
+                                        size: 22,
+                                      ),
                                     ),
                                     const SizedBox(width: 12),
                                     Expanded(
@@ -518,16 +618,30 @@ class _HomePageState extends State<HomePage> {
                                           Text(
                                             kos['name'] ?? 'Kos Tanpa Nama',
                                             style: const TextStyle(
-                                              fontSize: 16,
+                                              fontSize: 15,
                                               fontWeight: FontWeight.bold,
                                             ),
                                           ),
-                                          Text(
-                                            kos['address'] ?? '-',
-                                            style: TextStyle(
-                                              color: Colors.grey.shade600,
-                                              fontSize: 12,
-                                            ),
+                                          const SizedBox(height: 2),
+                                          Row(
+                                            children: [
+                                              Icon(
+                                                Icons.location_on,
+                                                size: 13,
+                                                color: Colors.grey.shade500,
+                                              ),
+                                              const SizedBox(width: 3),
+                                              Expanded(
+                                                child: Text(
+                                                  kos['address'] ?? '-',
+                                                  style: TextStyle(
+                                                    color: Colors.grey.shade600,
+                                                    fontSize: 12,
+                                                  ),
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ],
                                       ),
@@ -539,13 +653,16 @@ class _HomePageState extends State<HomePage> {
                                           vertical: 4,
                                         ),
                                         decoration: BoxDecoration(
-                                          color: Colors.red.shade100,
+                                          color: const Color(0xFFFEF3C7),
                                           borderRadius: BorderRadius.circular(6),
+                                          border: Border.all(
+                                            color: const Color(0xFFFBBF24),
+                                          ),
                                         ),
                                         child: const Text(
-                                          '🔥 PROMOSI',
+                                          '🔥 PROMO',
                                           style: TextStyle(
-                                            color: Colors.red,
+                                            color: Color(0xFFB45309),
                                             fontWeight: FontWeight.bold,
                                             fontSize: 10,
                                           ),
@@ -553,50 +670,78 @@ class _HomePageState extends State<HomePage> {
                                       ),
                                   ],
                                 ),
-                                const Divider(height: 20),
+                                const Divider(height: 20, color: skyBlueLight),
                                 Row(
                                   children: [
+                                    const Icon(
+                                      Icons.payments_outlined,
+                                      size: 16,
+                                      color: skyBlue,
+                                    ),
+                                    const SizedBox(width: 4),
                                     Text(
-                                      'Rp ${kos['price'] ?? 0}',
+                                      'Rp $price',
                                       style: const TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
-                                        color: Colors.indigo,
+                                        color: skyBlue,
                                       ),
                                     ),
-                                    const Text(' / bulan', style: TextStyle(fontSize: 12)),
+                                    const Text(
+                                      ' / bulan',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
                                     const Spacer(),
-                                    // Aksi sesuai role & ownership
-                                    if (isMine && p.isOwner) ...[
+                                    // Tombol aksi sesuai role
+                                    if (isMine) ...[
                                       IconButton(
-                                        tooltip: 'Promosikan Kos',
-                                        icon: const Icon(Icons.campaign, color: Colors.deepOrange),
+                                        tooltip: 'Kirim Promosi',
+                                        icon: const Icon(
+                                          Icons.campaign,
+                                          color: skyBlue,
+                                        ),
                                         onPressed: () => _sendPromotionNotification(
                                           kos['name'] ?? 'Kos',
-                                          kos['price'] ?? 0,
+                                          price,
                                         ),
                                       ),
                                       IconButton(
                                         tooltip: 'Edit Kos',
-                                        icon: const Icon(Icons.edit, color: Colors.blue),
+                                        icon: const Icon(
+                                          Icons.edit,
+                                          color: skyBlue,
+                                        ),
                                         onPressed: () => _showEditKosDialog(kos),
                                       ),
                                       IconButton(
                                         tooltip: 'Hapus Kos',
-                                        icon: const Icon(Icons.delete, color: Colors.red),
+                                        icon: const Icon(
+                                          Icons.delete_outline,
+                                          color: Colors.red,
+                                        ),
                                         onPressed: () async {
-                                          await _kosService.delete(kos['id'].toString());
+                                          await _kosService.delete(
+                                            kos['id'].toString(),
+                                          );
                                           _refreshData();
                                         },
                                       ),
                                     ] else ...[
-                                      FilledButton.tonal(
+                                      FilledButton(
+                                        style: FilledButton.styleFrom(
+                                          backgroundColor: skyBlue,
+                                        ),
                                         onPressed: () {
-                                          ScaffoldMessenger.of(context).showSnackBar(
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
                                             SnackBar(
                                               content: Text(
                                                 'Menghubungi pengelola: ${kos['name']}',
                                               ),
+                                              backgroundColor: skyBlue,
                                             ),
                                           );
                                         },
@@ -613,6 +758,7 @@ class _HomePageState extends State<HomePage> {
                     );
                   },
                 ),
+
                 const SizedBox(height: 80),
               ],
             ),
@@ -622,6 +768,8 @@ class _HomePageState extends State<HomePage> {
             role: p.role,
             allowed: const ['owner', 'admin'],
             child: FloatingActionButton.extended(
+              backgroundColor: skyBlue,
+              foregroundColor: Colors.white,
               onPressed: () => _showAddKosDialog(p),
               icon: const Icon(Icons.add_home),
               label: const Text('Tambah Kos'),

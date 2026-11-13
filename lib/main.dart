@@ -496,10 +496,37 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'KosFinder',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.indigo,
-        ),
         useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF0284C7), // Sky Blue (Biru Langit)
+          primary: const Color(0xFF0284C7),
+          surface: Colors.white,
+          surfaceTint: Colors.transparent,
+        ),
+        scaffoldBackgroundColor: const Color(0xFFF0F9FF), // Putih dengan nuansa biru langit sangat lembut
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF0284C7),
+          foregroundColor: Colors.white,
+          elevation: 0,
+          centerTitle: false,
+        ),
+        cardTheme: CardTheme(
+          color: Colors.white,
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: Color(0xFFBAE6FD), width: 1.2),
+          ),
+        ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            backgroundColor: const Color(0xFF0284C7),
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
       ),
       navigatorKey: navigatorKey,
       scaffoldMessengerKey: messengerKey,

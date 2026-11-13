@@ -161,7 +161,7 @@ class _HomePageState extends State<HomePage> {
                       'Pencari kos akan menerima notifikasi "Kos baru tersedia di sekitar kampus"',
                     ),
                     value: sendPromo,
-                    activeColor: skyBlue,
+                    activeTrackColor: skyBlue,
                     onChanged: (val) => setModalState(() => sendPromo = val),
                   ),
                   const SizedBox(height: 16),
@@ -330,7 +330,7 @@ class _HomePageState extends State<HomePage> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                     side: BorderSide(
-                      color: p.isOwner ? skyBlue.withOpacity(0.6) : skyBlueLight,
+                      color: p.isOwner ? skyBlue.withAlpha(153) : skyBlueLight,
                       width: 1.5,
                     ),
                   ),

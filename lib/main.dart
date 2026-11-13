@@ -11,6 +11,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'config/supabase_config.dart';
 import 'services/course_supabase_service.dart';
 import 'providers/course_state.dart';
+import 'pages/login_page.dart';
+import 'services/auth_service.dart';
 // ============================================================
 // LOAD STUDENT DATA
 // ============================================================
@@ -486,14 +488,14 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Course Explorer',
+      title: 'KosFinder',
       theme: ThemeData(
-  colorScheme: ColorScheme.fromSeed(
-    seedColor: Colors.blue,
-  ),
-  useMaterial3: true,
-),
-      home: const NavigationPage(),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.indigo,
+        ),
+        useMaterial3: true,
+      ),
+      home: const LoginPage(),
     );
   }
 }

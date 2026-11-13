@@ -6,9 +6,35 @@ class AuthService {
 
   final SupabaseClient _client = Supabase.instance.client;
 
-  User? get currentUser => _client.auth.currentUser;
+  User? _mockUser;
+  bool _mockLoggedIn = false;
+
+  User? get currentUser => _mockUser ?? _client.auth.currentUser;
   Session? get currentSession => _client.auth.currentSession;
-  bool get isLoggedIn => currentSession != null;
+  bool get isLoggedIn => _mockLoggedIn || currentSession != null;
+
+  void setMockUser({
+    required String email,
+    required String role,
+    String name = '',
+  }) {
+    _mockLoggedIn = true;
+    _mockUser = User(
+      id: role == 'owner' ? 'owner-888-bayu' : 'seeker-111-bayu',
+      appMetadata: const {},
+      userMetadata: {
+        'role': role,
+        'name': name.isNotEmpty
+            ? name
+            : (role == 'owner'
+                ? 'Gede Bayu (Pemilik Kos)'
+                : 'Gede Bayu (Pencari Kos)'),
+      },
+      aud: 'authenticated',
+      createdAt: DateTime.now().toIso8601String(),
+      email: email,
+    );
+  }
 
   Future<AuthResponse> register({
     required String email,
@@ -26,9 +52,17 @@ class AuthService {
   Future<AuthResponse> login({
     required String email,
     required String password,
-  }) {
-    return _client.auth.signInWithPassword(email: email, password: password);
+  }) async {
+    _mockLoggedIn = false;
+    _mockUser = null;
+    return await _client.auth.signInWithPassword(email: email, password: password);
   }
 
-  Future<void> logout() => _client.auth.signOut();
+  Future<void> logout() async {
+    _mockLoggedIn = false;
+    _mockUser = null;
+    try {
+      await _client.auth.signOut();
+    } catch (_) {}
+  }
 }

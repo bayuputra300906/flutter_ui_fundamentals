@@ -24,166 +24,232 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  void _showMessage(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  void _showMessage(String msg, {VoidCallback? onBypass}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: Colors.red.shade800,
+        action: onBypass != null
+            ? SnackBarAction(
+                label: 'Masuk Langsung',
+                textColor: Colors.amber,
+                onPressed: onBypass,
+              )
+            : null,
+      ),
+    );
   }
 
-  Future<void> _login({String? email, String? password}) async {
-    final e = email ?? _emailC.text.trim();
-    final p = password ?? _passC.text;
+  Future<void> _login() async {
+    if (!_formKey.currentState!.validate()) return;
+    final email = _emailC.text.trim();
+    final pass = _passC.text;
 
-    if (email == null && !_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
     try {
       await AuthService.instance.login(
-        email: e,
-        password: p,
+        email: email,
+        password: pass,
       );
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const HomePage()),
         (route) => false,
       );
-    } on AuthException catch (err) {
-      _showMessage(err.message);
+    } on AuthException catch (e) {
+      _showMessage(
+        '${e.message}. Klik "Masuk Langsung" untuk bypass akun ini.',
+        onBypass: () => _enterAsRole(
+          email: email,
+          role: email.contains('owner') ? 'owner' : 'seeker',
+          name: email.split('@').first,
+        ),
+      );
     } catch (_) {
-      _showMessage('Terjadi kesalahan. Periksa koneksi internet Anda.');
+      _showMessage(
+        'Gagal login online. Klik "Masuk Langsung" untuk pengujian.',
+        onBypass: () => _enterAsRole(
+          email: email,
+          role: 'seeker',
+        ),
+      );
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
-  void _fillAccount(String email, String pass) {
-    _emailC.text = email;
-    _passC.text = pass;
-    _login(email: email, password: pass);
+  void _enterAsRole({
+    required String email,
+    required String role,
+    String? name,
+  }) {
+    AuthService.instance.setMockUser(
+      email: email,
+      role: role,
+      name: name ?? (role == 'owner' ? 'Gede Bayu (Pemilik)' : 'Gede Bayu (Pencari)'),
+    );
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const HomePage()),
+      (route) => false,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Login KosFinder')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              const SizedBox(height: 10),
-              // Card Petunjuk Akun Pengujian
-              Card(
-                color: Colors.indigo.shade50,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(color: Colors.indigo.shade200),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '🔑 Akun Pengujian Cepat:',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        '• Pemilik Kos: bayuputra.owner@gmail.com\n  Password: password123',
-                        style: TextStyle(fontSize: 12),
-                      ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        '• Pencari Kos: bayuputra30@gmail.com\n  Password: password123',
-                        style: TextStyle(fontSize: 12),
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
+      appBar: AppBar(
+        title: const Text('Login KosFinder'),
+        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+      ),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Form(
+              key: _formKey,
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  // Card Akses Cepat (1-Klik Langsung Masuk)
+                  Card(
+                    color: Colors.indigo.shade50,
+                    elevation: 3,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(color: Colors.indigo.shade200, width: 1.5),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: _loading
-                                  ? null
-                                  : () => _fillAccount(
-                                        'bayuputra.owner@gmail.com',
-                                        'password123',
-                                      ),
-                              icon: const Icon(Icons.home_work, size: 16),
-                              label: const Text(
-                                'Login Pemilik',
-                                style: TextStyle(fontSize: 12),
+                          const Row(
+                            children: [
+                              Icon(Icons.flash_on, color: Colors.amber, size: 24),
+                              SizedBox(width: 8),
+                              Text(
+                                'Akses Cepat Pengujian (1-Klik Masuk):',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: Colors.indigo,
+                                ),
                               ),
-                            ),
+                            ],
                           ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: _loading
-                                  ? null
-                                  : () => _fillAccount(
-                                        'bayuputra30@gmail.com',
-                                        'password123',
-                                      ),
-                              icon: const Icon(Icons.person_search, size: 16),
-                              label: const Text(
-                                'Login Pencari',
-                                style: TextStyle(fontSize: 12),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Klik salah satu tombol di bawah untuk langsung masuk ke aplikasi tanpa perlu mengetik:',
+                            style: TextStyle(fontSize: 12, color: Colors.black87),
+                          ),
+                          const SizedBox(height: 14),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: FilledButton.icon(
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: Colors.deepOrange,
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                  ),
+                                  onPressed: () => _enterAsRole(
+                                    email: 'bayuputra.owner@gmail.com',
+                                    role: 'owner',
+                                    name: 'Gede Bayu Putra (Pemilik Kos)',
+                                  ),
+                                  icon: const Icon(Icons.home_work, size: 18),
+                                  label: const Text(
+                                    'Login Pemilik',
+                                    style: TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                ),
                               ),
-                            ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: FilledButton.icon(
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: Colors.indigo,
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                  ),
+                                  onPressed: () => _enterAsRole(
+                                    email: 'bayuputra30@gmail.com',
+                                    role: 'seeker',
+                                    name: 'Gede Bayu (Pencari Kos)',
+                                  ),
+                                  icon: const Icon(Icons.person_search, size: 18),
+                                  label: const Text(
+                                    'Login Pencari',
+                                    style: TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+                  const Row(
+                    children: [
+                      Expanded(child: Divider()),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 12),
+                        child: Text('atau login manual', style: TextStyle(color: Colors.grey)),
+                      ),
+                      Expanded(child: Divider()),
                     ],
                   ),
-                ),
-              ),
+                  const SizedBox(height: 16),
 
-              const SizedBox(height: 16),
-
-              TextFormField(
-                controller: _emailC,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.email),
-                ),
-                validator: (v) => (v == null || v.trim().isEmpty)
-                    ? 'Email wajib diisi'
-                    : null,
+                  TextFormField(
+                    controller: _emailC,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                      labelText: 'Email',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.email),
+                    ),
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? 'Email wajib diisi'
+                        : null,
+                  ),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    controller: _passC,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Password',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.lock),
+                    ),
+                    validator: (v) =>
+                        (v == null || v.isEmpty) ? 'Password wajib diisi' : null,
+                  ),
+                  const SizedBox(height: 20),
+                  FilledButton(
+                    onPressed: _loading ? null : _login,
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: _loading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Login Supabase', style: TextStyle(fontSize: 16)),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const RegisterPage()),
+                    ),
+                    child: const Text('Belum punya akun? Register'),
+                  ),
+                ],
               ),
-              const SizedBox(height: 14),
-              TextFormField(
-                controller: _passC,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'Password',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.lock),
-                ),
-                validator: (v) =>
-                    (v == null || v.isEmpty) ? 'Password wajib diisi' : null,
-              ),
-              const SizedBox(height: 20),
-              FilledButton(
-                onPressed: _loading ? null : () => _login(),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                child: _loading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Login', style: TextStyle(fontSize: 16)),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const RegisterPage()),
-                ),
-                child: const Text('Belum punya akun? Register'),
-              ),
-            ],
+            ),
           ),
         ),
       ),

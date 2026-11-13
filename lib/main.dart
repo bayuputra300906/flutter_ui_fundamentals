@@ -7,10 +7,18 @@ import 'providers/course_provider.dart';
 import 'repositories/course_repository.dart';
 import 'screens/navigation_page.dart';
 import 'services/course_api_service.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'config/supabase_config.dart';
+import 'firebase_options.dart';
 import 'services/course_supabase_service.dart';
 import 'providers/course_state.dart';
+import 'pages/login_page.dart';
+import 'pages/home_page.dart';
+import 'services/auth_service.dart';
+import 'services/notification_service.dart';
+import 'app_keys.dart';
 // ============================================================
 // LOAD STUDENT DATA
 // ============================================================
@@ -486,14 +494,18 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Course Explorer',
+      title: 'KosFinder',
       theme: ThemeData(
-  colorScheme: ColorScheme.fromSeed(
-    seedColor: Colors.blue,
-  ),
-  useMaterial3: true,
-),
-      home: const NavigationPage(),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.indigo,
+        ),
+        useMaterial3: true,
+      ),
+      navigatorKey: navigatorKey,
+      scaffoldMessengerKey: messengerKey,
+      home: AuthService.instance.isLoggedIn
+          ? const HomePage()
+          : const LoginPage(),
     );
   }
 }
@@ -504,6 +516,11 @@ class MyApp extends StatelessWidget {
 Future<void> main() async {
   // Menyiapkan Flutter sebelum inisialisasi layanan.
   WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
   // Menginisialisasi Supabase sebelum runApp().
   await Supabase.initialize(
